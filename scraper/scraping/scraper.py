@@ -44,7 +44,7 @@ def scrape_website(base_url: str, robots_checker: RobotsTxtChecker) -> List[str]
         )
 
         driver.get(base_url)
-        time.sleep(10)
+        time.sleep(3)
 
         page_source = driver.page_source
         soup = BeautifulSoup(page_source, "html.parser")
