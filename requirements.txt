@@ -1,0 +1,15 @@
+streamlit==1.25.0
+pymilvus==2.4.3
+requests==2.31.0
+beautifulsoup4==4.12.3
+selenium==4.11.1
+webdriver-manager==4.0.1
+transformers==4.41.2
+python-dotenv==1.0.1
+langchain==0.2.2
+langchain-community==0.2.3
+langchain-huggingface==0.0.3
+pytest==7.4.0
+black==23.3.0
+pre-commit==3.2.2
+isort==5.13.2

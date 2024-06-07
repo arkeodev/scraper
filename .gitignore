@@ -168,3 +168,7 @@ cython_debug/
 
 # Environment variables
 .env
+
+# milvus files
+embedEtcd.yaml
+volumes/

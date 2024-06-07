@@ -1,61 +1,139 @@
-# scraping/database/vector_db.py
-import os
+from typing import Any, Dict, List
 
-import faiss
-import numpy as np
 import streamlit as st
-import torch
-from transformers import AutoModel, AutoTokenizer
+from pymilvus import (
+    Collection,
+    CollectionSchema,
+    DataType,
+    FieldSchema,
+    connections,
+    utility,
+)
+from sentence_transformers import SentenceTransformer
+
+from scraper.database.milvus_config import MilvusConfig
 
 
 class VectorDatabase:
-    def __init__(
-        self,
-        embedding_model_name="sentence-transformers/all-MiniLM-L6-v2",
-        vector_db="FAISS",
-    ):
-        self.embedding_model_name = embedding_model_name
-        self.vector_db = vector_db
-        self.vector_store = None
-        self.model, self.tokenizer = self._initialize_embeddings()
+    def __init__(self, config: MilvusConfig) -> None:
+        """
+        Initializes the VectorDatabase with the given configuration.
 
-    def _initialize_embeddings(self):
+        Args:
+            config (MilvusConfig): Configuration for the Milvus database and embedding model.
+        """
+        self.config = config
+        self.embeddings = None
+        self.collection = None
+
+    def connect_to_milvus(self) -> None:
+        """
+        Connects to the Milvus server using the configuration provided.
+        """
         try:
-            tokenizer = AutoTokenizer.from_pretrained(self.embedding_model_name)
-            st.write(f"Loaded tokenizer for {self.embedding_model_name}")
-
-            # Allocate device
-            device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-            model = AutoModel.from_pretrained(self.embedding_model_name).to(device)
-            st.write(f"Loaded model on {device}")
-
-            return model, tokenizer
+            connections.connect("default", host=self.config.host, port=self.config.port)
+            st.success("Connected to Milvus server.")
         except Exception as e:
-            st.error(f"Error loading model: {e}")
+            st.error(f"Failed to connect to Milvus server: {e}")
             raise e
 
-    def embed_text(self, text):
-        inputs = self.tokenizer(
-            text, return_tensors="pt", padding=True, truncation=True
-        )
-        with torch.no_grad():
-            outputs = self.model(**inputs)
-        embeddings = outputs.last_hidden_state.mean(dim=1)
-        return embeddings.numpy()
+    def load_embedding_model(self) -> None:
+        """
+        Loads the SentenceTransformer embedding model.
+        """
+        self.embeddings = SentenceTransformer(self.config.embedding_model_name)
 
-    def create_vector_store(self, documents):
+    def create_or_load_collection(self) -> None:
+        """
+        Creates or loads the Milvus collection based on the provided configuration.
+        """
+        fields = [
+            FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
+            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=384),
+        ]
+        schema = CollectionSchema(fields)
+
+        try:
+            if not utility.has_collection(self.config.collection_name):
+                self.collection = Collection(
+                    name=self.config.collection_name, schema=schema
+                )
+                st.success("Collection created successfully.")
+            else:
+                self.collection = Collection(name=self.config.collection_name)
+                st.success("Collection loaded successfully.")
+        except Exception as e:
+            st.error(f"Failed to create or load collection: {e}")
+            raise e
+
+    def embed_text(self, text: str) -> List[float]:
+        """
+        Embeds a given text using SentenceTransformer embeddings.
+
+        Args:
+            text (str): The text to embed.
+
+        Returns:
+            List[float]: The embedding vector.
+        """
+        if not self.embeddings:
+            self.load_embedding_model()
+        return self.embeddings.encode(text)
+
+    def create_vector_store(self, documents: List[Dict[str, str]]) -> None:
+        """
+        Creates a vector store from the provided documents.
+
+        Args:
+            documents (List[Dict[str, str]]): A list of documents with text content.
+        """
+        if not self.collection:
+            self.create_or_load_collection()
+
         embeddings = [self.embed_text(doc["text"]) for doc in documents]
-        embeddings = np.vstack(embeddings)
-        self.vector_store = faiss.IndexFlatL2(embeddings.shape[1])
-        self.vector_store.add(embeddings)
+        entities = [embeddings]
 
-    def insert_documents(self, documents):
+        try:
+            self.collection.insert(entities)
+            index_params = {
+                "index_type": "IVF_FLAT",
+                "params": {"nlist": 128},
+                "metric_type": "L2",
+            }
+            self.collection.create_index(
+                field_name="embedding", index_params=index_params
+            )
+            self.collection.load()
+            st.success("Index created and collection loaded successfully.")
+        except Exception as e:
+            st.error(f"Failed to insert data or create index: {e}")
+            raise e
+
+    def insert_documents(self, documents: List[Dict[str, str]]) -> None:
+        """
+        Inserts new documents into the existing vector store.
+
+        Args:
+            documents (List[Dict[str, str]]): A list of documents with text content.
+        """
+        if not self.collection:
+            self.create_or_load_collection()
+
         embeddings = [self.embed_text(doc["text"]) for doc in documents]
-        embeddings = np.vstack(embeddings)
-        if self.vector_store:
-            self.vector_store.add(embeddings)
-        else:
-            self.create_vector_store(documents)
+        entities = [embeddings]
 
-    def get_vector_store(self):
-        return self.vector_store
+        try:
+            self.collection.insert(entities)
+            self.collection.load()
+        except Exception as e:
+            st.error(f"Failed to insert documents: {e}")
+            raise e
+
+    def get_vector_store(self) -> Collection:
+        """
+        Returns the vector store collection.
+
+        Returns:
+            Collection: The Milvus collection object.
+        """
+        return self.collection
