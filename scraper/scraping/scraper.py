@@ -1,3 +1,4 @@
+import hashlib
 import threading
 import time
 from typing import List
@@ -18,6 +19,11 @@ MIN_INTERVAL_BETWEEN_REQUESTS = 60 / REQUESTS_PER_MINUTE
 # Global variables for tracking request times
 last_request_time = 0
 lock = threading.Lock()
+
+
+def get_collection_name(url: str) -> str:
+    # Generate a valid Milvus collection name based on the URL
+    return hashlib.md5(url.encode("utf-8")).hexdigest()
 
 
 def wait_for_next_request() -> None:
@@ -56,7 +62,7 @@ def scrape_website(base_url: str, robots_checker: RobotsTxtChecker) -> List[str]
 
         # Set up headless Chrome WebDriver options
         options = Options()
-        options.headless = True
+        options.headless = False
 
         # Initialize WebDriver
         driver = webdriver.Chrome(
@@ -65,7 +71,7 @@ def scrape_website(base_url: str, robots_checker: RobotsTxtChecker) -> List[str]
 
         # Fetch the page
         driver.get(base_url)
-        time.sleep(3)  # Allow some time for the page to load
+        time.sleep(10)  # Allow some time for the page to load
 
         # Parse the page source with BeautifulSoup
         page_source = driver.page_source

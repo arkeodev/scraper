@@ -1,4 +1,4 @@
-from typing import Any, Dict, List
+from typing import Dict, List
 
 import streamlit as st
 from pymilvus import (
@@ -11,7 +11,7 @@ from pymilvus import (
 )
 from sentence_transformers import SentenceTransformer
 
-from scraper.database.milvus_config import MilvusConfig
+from scraper.config.config import MilvusConfig
 
 
 class VectorDatabase:

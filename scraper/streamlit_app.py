@@ -4,8 +4,8 @@ from typing import List
 import requests
 import streamlit as st
 
-from scraper.database.vector_db import MilvusConfig, VectorDatabase
-from scraper.qa.qa import QuestionAnswering
+from scraper.rag.qa import QuestionAnswering
+from scraper.rag.vector_db import MilvusConfig, VectorDatabase
 from scraper.scraping.robots import RobotsTxtChecker
 from scraper.scraping.scraper import scrape_website
 
