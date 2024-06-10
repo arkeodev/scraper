@@ -1,114 +1,61 @@
+# robots.py
+import logging
+from typing import Dict, List, Optional
 from urllib.parse import urlparse
 
 import requests
-from requests.exceptions import ConnectionError, HTTPError, RequestException, Timeout
+
+from scraper.config.logging import safe_run
 
 
 class RobotsTxtChecker:
-    def __init__(self, base_url: str) -> None:
-        """
-        Initializes the RobotsTxtChecker with the base URL.
+    """
+    This class fetches and parses the robots.txt file for a given website to manage scraping permissions.
+    """
 
-        Args:
-            base_url (str): The base URL of the website to check.
-        """
-        self.base_url = base_url
-        self.content: str = None
+    def __init__(self, base_url: str, requester: Optional[requests.Session] = None):
+        self.base_url = urlparse(base_url).netloc
+        self.robots_url = f"http://{self.base_url}/robots.txt"
+        self.requester = requester or requests.Session()
+        self.rules: Dict[str, List[str]] = {}
 
+    @safe_run
     def fetch(self) -> None:
-        """
-        Fetches the robots.txt file from the base URL.
-
-        Raises:
-            ValueError: If an error occurs while fetching the robots.txt file.
-        """
         try:
-            robots_url = f"{self.base_url.rstrip('/')}/robots.txt"
-            response = requests.get(robots_url)
-
-            if response.status_code == 404:
-                self.content = "robots.txt not found. Proceeding with scraping."
-                return
-
+            response = self.requester.get(self.robots_url)
             response.raise_for_status()
-            self.content = response.text
+            self._parse(response.text)
+            logging.info("robots.txt fetched and parsed successfully.")
+        except requests.RequestException as e:
+            if e.response.status_code == 404:
+                logging.warning(
+                    f"robots.txt not found at {self.robots_url}, proceeding without it."
+                )
+            else:
+                logging.error(f"Failed to fetch robots.txt from {self.robots_url}: {e}")
+                raise ConnectionError(f"Error fetching robots.txt: {e}")
 
-        except (HTTPError, ConnectionError, Timeout, RequestException) as e:
-            raise ValueError(f"Error occurred while checking robots.txt: {e}")
-
-    def is_allowed(self, user_agent: str = "*") -> bool:
-        """
-        Checks if the scraping is allowed based on the robots.txt content.
-
-        Args:
-            user_agent (str, optional): The user agent to check against. Defaults to "*".
-
-        Raises:
-            ValueError: If the robots.txt content is not fetched yet.
-
-        Returns:
-            bool: True if scraping is allowed, False otherwise.
-        """
-        if self.content is None:
-            raise ValueError("robots.txt content is not fetched yet.")
-
-        if self.content == "robots.txt not found. Proceeding with scraping.":
+    @safe_run
+    def is_allowed(self, path: str, user_agent: str = "*") -> bool:
+        if user_agent not in self.rules:
             return True
+        for disallow_path in self.rules.get(user_agent, []):
+            if path.startswith(disallow_path):
+                logging.info(
+                    f"Access to {path} disallowed for {user_agent} by robots.txt."
+                )
+                return False
+        return True
 
-        user_agent_directives = self._parse_robots_txt()
-
-        parsed_url = urlparse(self.base_url)
-        path = parsed_url.path or "/"
-
-        return self._is_path_allowed(user_agent, path, user_agent_directives)
-
-    def _parse_robots_txt(self) -> dict:
-        """
-        Parses the robots.txt content into directives for each user agent.
-
-        Returns:
-            dict: A dictionary with user agents as keys and lists of disallowed paths as values.
-        """
-        user_agent_directives = {}
+    @safe_run
+    def _parse(self, content: str) -> None:
         current_user_agent = None
-
-        for line in self.content.split("\n"):
+        for line in content.splitlines():
             line = line.strip()
-            if not line or line.startswith("#"):
-                continue
-
-            if line.lower().startswith("user-agent:"):
+            if line.startswith("User-agent:"):
                 current_user_agent = line.split(":")[1].strip()
-                user_agent_directives[current_user_agent] = []
-            elif line.lower().startswith("disallow:") and current_user_agent:
-                path = line.split(":")[1].strip()
-                user_agent_directives[current_user_agent].append(path)
-
-        return user_agent_directives
-
-    def _is_path_allowed(
-        self, user_agent: str, path: str, user_agent_directives: dict
-    ) -> bool:
-        """
-        Checks if the given path is allowed for the specified user agent based on the directives.
-
-        Args:
-            user_agent (str): The user agent to check against.
-            path (str): The path to check.
-            user_agent_directives (dict): The parsed robots.txt directives.
-
-        Returns:
-            bool: True if the path is allowed, False otherwise.
-        """
-        allowed = True
-
-        for ua, disallowed_paths in user_agent_directives.items():
-            if ua == "*" or ua.lower() in user_agent.lower():
-                for disallowed_path in disallowed_paths:
-                    if path.startswith(disallowed_path):
-                        allowed = False
-                        break
-                if not allowed:
-                    break
-
-        return allowed
+                self.rules[current_user_agent] = []
+            elif line.startswith("Disallow:") and current_user_agent is not None:
+                disallow_path = line.split(":")[1].strip()
+                self.rules[current_user_agent].append(disallow_path)
+        logging.info("robots.txt rules parsed and stored.")

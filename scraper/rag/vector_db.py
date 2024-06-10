@@ -1,6 +1,13 @@
+"""
+Module: vector_db.py
+Purpose: Manages interactions with a vector database (Milvus) for storing, indexing,
+and retrieving embedded text data along with its metadata.
+"""
+
+import json
+import logging
 from typing import Dict, List
 
-import streamlit as st
 from pymilvus import (
     Collection,
     CollectionSchema,
@@ -12,18 +19,44 @@ from pymilvus import (
 from sentence_transformers import SentenceTransformer
 
 from scraper.config.config import MilvusConfig
+from scraper.config.logging import safe_run, setup_logging
+from scraper.rag.dynamic_chunking import DataChunker
+from scraper.rag.metadata_generator import generate_metadata
+from scraper.utility.utils import generate_collection_name
+
+# Setup logging configuration
+setup_logging()
 
 
 class VectorDatabase:
-    def __init__(self, config: MilvusConfig) -> None:
-        """
-        Initializes the VectorDatabase with the given configuration.
+    """
+    Manages vector database operations including collection management, document insertion,
+    and embedding handling using Milvus.
+    """
 
-        Args:
-            config (MilvusConfig): Configuration for the Milvus database and embedding model.
+    def __init__(
+        self,
+        url: str,
+        config: MilvusConfig = None,
+        embedding_model: SentenceTransformer = None,
+        chunker: DataChunker = None,
+    ):
         """
-        self.config = config
-        self.embeddings = None
+        Initializes the VectorDatabase with configuration, an embedding model, and a data chunker.
+        Args:
+            url (str): Web URL be scraped.
+            config (MilvusConfig): Configuration for the database connection and collection management.
+            embedding_model (SentenceTransformer, optional): Preloaded embedding model for text vectorization.
+            chunker (DataChunker, optional): An instance of DataChunker for chunking documents.
+        """
+        self.url = url
+        self.config = config if config else MilvusConfig()
+        self.embedding_model = (
+            embedding_model
+            if embedding_model
+            else SentenceTransformer(self.config.embedding_model_name)
+        )
+        self.chunker = chunker if chunker else DataChunker()
         self.collection = None
 
     def connect_to_milvus(self) -> None:
@@ -32,107 +65,109 @@ class VectorDatabase:
         """
         try:
             connections.connect("default", host=self.config.host, port=self.config.port)
-            st.success("Connected to Milvus server.")
+            logging.info("Connected to Milvus server.")
         except Exception as e:
-            st.error(f"Failed to connect to Milvus server: {e}")
+            logging.error(f"Failed to connect to Milvus server: {e}")
             raise e
 
-    def load_embedding_model(self) -> None:
-        """
-        Loads the SentenceTransformer embedding model.
-        """
-        self.embeddings = SentenceTransformer(self.config.embedding_model_name)
+    def get_collection_name(self) -> str:
+        return generate_collection_name(self.url)
 
-    def create_or_load_collection(self) -> None:
+    @safe_run
+    def create_or_load_collection(self, collection_name: str):
         """
-        Creates or loads the Milvus collection based on the provided configuration.
+        Creates or loads a collection in Milvus with the given name.
+        Args:
+            collection_name (str): The name of the collection to manage.
         """
         fields = [
             FieldSchema(name="id", dtype=DataType.INT64, is_primary=True, auto_id=True),
-            FieldSchema(name="embedding", dtype=DataType.FLOAT_VECTOR, dim=384),
+            FieldSchema(
+                name="embedding",
+                dtype=DataType.FLOAT_VECTOR,
+                dim=self.embedding_model.get_sentence_embedding_dimension(),
+            ),
+            FieldSchema(name="document", dtype=DataType.VARCHAR, max_length=4096),
+            FieldSchema(
+                name="metadata", dtype=DataType.VARCHAR, max_length=4096
+            ),  # Assuming JSON data will be stored as string
         ]
-        schema = CollectionSchema(fields)
+        schema = CollectionSchema(
+            fields,
+            description="Collection for storing text documents with embeddings and metadata.",
+        )
 
-        try:
-            if not utility.has_collection(self.config.collection_name):
-                self.collection = Collection(
-                    name=self.config.collection_name, schema=schema
-                )
-                st.success("Collection created successfully.")
-            else:
-                self.collection = Collection(name=self.config.collection_name)
-                st.success("Collection loaded successfully.")
-        except Exception as e:
-            st.error(f"Failed to create or load collection: {e}")
-            raise e
+        if utility.has_collection(collection_name):
+            utility.drop_collection(collection_name)
+            logging.info(f"Existing collection {collection_name} dropped.")
 
-    def embed_text(self, text: str) -> List[float]:
+        self.collection = Collection(name=collection_name, schema=schema)
+        logging.info(f"Collection {collection_name} created successfully.")
+
+    @safe_run
+    def create_vector_store(self):
         """
-        Embeds a given text using SentenceTransformer embeddings.
-
+        Creates an index for the vector store.
         Args:
-            text (str): The text to embed.
-
-        Returns:
-            List[float]: The embedding vector.
+            collection_name (str): The name of the collection to create or load.
         """
-        if not self.embeddings:
-            self.load_embedding_model()
-        return self.embeddings.encode(text)
+        self.create_or_load_collection(self.get_collection_name())
+        index_params = {
+            "index_type": "IVF_FLAT",
+            "params": {"nlist": 128},
+            "metric_type": "L2",
+        }
+        self.collection.create_index(field_name="embedding", index_params=index_params)
+        self.collection.load()
+        logging.info("Index created and collection loaded successfully.")
 
-    def create_vector_store(self, documents: List[Dict[str, str]]) -> None:
+    @safe_run
+    def insert_documents(self, documents: List[Dict[str, str]]):
         """
-        Creates a vector store from the provided documents.
-
+        Processes, embeds, and inserts documents into the vector database.
         Args:
-            documents (List[Dict[str, str]]): A list of documents with text content.
+            documents (List[Dict[str, str]]): List of document texts to process and store.
+            collection_name (str): The name of the collection where documents will be inserted.
         """
-        if not self.collection:
-            self.create_or_load_collection()
+        for document in documents:
+            if not isinstance(document, dict) or "text" not in document:
+                logging.error(f"Invalid document format: {document}")
+                continue
 
-        embeddings = [self.embed_text(doc["text"]) for doc in documents]
-        entities = [embeddings]
+            logging.info(f"Processing document: {document['text'][:50]}...")
 
-        try:
-            self.collection.insert(entities)
-            index_params = {
-                "index_type": "IVF_FLAT",
-                "params": {"nlist": 128},
-                "metric_type": "L2",
-            }
-            self.collection.create_index(
-                field_name="embedding", index_params=index_params
-            )
-            self.collection.load()
-            st.success("Index created and collection loaded successfully.")
-        except Exception as e:
-            st.error(f"Failed to insert data or create index: {e}")
-            raise e
+            chunks = self.chunker.chunk_data([document["text"]])
+            for chunk in chunks:
+                if isinstance(chunk, list):
+                    chunk = chunk[0]
 
-    def insert_documents(self, documents: List[Dict[str, str]]) -> None:
-        """
-        Inserts new documents into the existing vector store.
+                embedding = self.embedding_model.encode(chunk).tolist()
+                metadata = generate_metadata(chunk, self.url)
+                json_data = json.dumps({"text": chunk, "metadata": metadata})
 
-        Args:
-            documents (List[Dict[str, str]]): A list of documents with text content.
-        """
-        if not self.collection:
-            self.create_or_load_collection()
+                logging.info(f"Embedding: {embedding[:5]}... Length: {len(embedding)}")
+                logging.info(f"Document: {chunk[:50]}...")
+                logging.info(f"Metadata: {metadata}")
 
-        embeddings = [self.embed_text(doc["text"]) for doc in documents]
-        entities = [embeddings]
-
-        try:
-            self.collection.insert(entities)
-            self.collection.load()
-        except Exception as e:
-            st.error(f"Failed to insert documents: {e}")
-            raise e
+                try:
+                    self.collection.insert(
+                        [
+                            {
+                                "embedding": embedding,
+                                "document": chunk,
+                                "metadata": json_data,
+                            }
+                        ]
+                    )
+                except Exception as e:
+                    logging.error(
+                        f"Failed to insert document chunk: {chunk[:50]}... Error: {e}"
+                    )
+        logging.info(f"Documents inserted successfully into database.")
 
     def get_vector_store(self) -> Collection:
         """
         Returns the vector store collection.
-
         Returns:
             Collection: The Milvus collection object.
         """

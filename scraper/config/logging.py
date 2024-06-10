@@ -1,5 +1,5 @@
-# Global error handling mechanisms across modules
 import logging
+import traceback
 
 
 def setup_logging():
@@ -13,7 +13,10 @@ def safe_run(func):
         try:
             return func(*args, **kwargs)
         except Exception as e:
-            logging.error(f"An error occurred: {e}", exc_info=True)
+            func_name = func.__name__
+            tb = traceback.format_exc()
+            logging.error(f"An error occurred in function '{func_name}': {e}")
+            logging.error(f"Traceback: {tb}")
             return None
 
     return wrapper
