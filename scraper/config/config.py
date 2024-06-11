@@ -22,11 +22,12 @@ class AppConfig:
 
 @dataclass
 class ScraperConfig:
-    max_links: int = 2
-    page_load_timeout: int = 15
+    max_links: int = 10
+    page_load_timeout: int = 10
     page_load_sleep: int = 5
 
 
 @dataclass
 class QAConfig:
     top_n_chunks: int = 5
+    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"

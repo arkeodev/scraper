@@ -25,6 +25,7 @@ class WebScraper:
         self,
         base_url: str,
         update_progress: Callable[[str], None],
+        config: ScraperConfig,
         robots_checker: Optional[RobotsTxtChecker] = None,
         driver: Optional[webdriver.Chrome] = None,
         parser: Optional[Callable] = None,
@@ -35,6 +36,7 @@ class WebScraper:
         Args:
             base_url (str): The base URL of the website to scrape.
             update_progress (Callable[[str], None]): Callback function to update progress.
+            config (ScraperConfig): Configuration for the scraper.
             robots_checker (Optional[RobotsTxtChecker]): Instance of RobotsTxtChecker, defaults to a new instance if not provided.
             driver (Optional[webdriver.Chrome]): Instance of Chrome WebDriver, defaults to a new instance if not provided.
             parser (Optional[Callable]): HTML parser, defaults to BeautifulSoup if not provided.
@@ -46,13 +48,14 @@ class WebScraper:
         )
         self.driver = driver if driver else self._setup_driver()
         self.parser = parser if parser else BeautifulSoup
+        self.config = config if config else ScraperConfig()
+        self.max_links = self.config.max_links
+        self.page_load_sleep = self.config.page_load_sleep
+        self.page_load_timeout = self.config.page_load_timeout
         self.lock = threading.Lock()
         self.last_request_time = 0
         self.visited_urls: Set[str] = set()
         self.documents: List[str] = []
-        self.max_links = ScraperConfig().max_links
-        self.page_load_sleep = ScraperConfig().page_load_sleep
-        self.page_load_timeout = ScraperConfig().page_load_timeout
 
     def _setup_driver(self) -> webdriver.Chrome:
         """

@@ -1,9 +1,3 @@
-"""
-Module: qa.py
-Purpose: Handles the question-answering functionality, including retrieval, reranking,
-and generating responses using a prompt template.
-"""
-
 import logging
 from typing import Dict, List
 
@@ -12,7 +6,7 @@ from langchain.prompts import PromptTemplate
 from langchain.vectorstores import VectorStore
 from sentence_transformers import SentenceTransformer, util
 
-from scraper.config.config import MilvusConfig, QAConfig
+from scraper.config.config import QAConfig
 from scraper.rag.prompt_template import get_prompt_template
 
 
@@ -25,18 +19,18 @@ class QuestionAnswering:
         self,
         vector_store: VectorStore,
         documents: List[Dict[str, str]],
-        config: MilvusConfig = None,
+        qa_config: QAConfig,
         embedding_model: SentenceTransformer = None,
     ):
         self.vector_store = vector_store
         self.documents = documents
-        self.config = config if config else MilvusConfig()
+        self.qa_config = qa_config if qa_config else QAConfig()
         self.embedding_model = (
             embedding_model
             if embedding_model
-            else SentenceTransformer(self.config.embedding_model_name)
+            else SentenceTransformer(self.qa_config.embedding_model_name)
         )
-        self.top_n_chunks = QAConfig().top_n_chunks
+        self.top_n_chunks = self.qa_config.top_n_chunks
 
     def retrieve_similar_chunks(self, question: str, n: int) -> List[str]:
         """
