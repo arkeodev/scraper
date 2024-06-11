@@ -12,8 +12,6 @@ from scraper.rag.vector_db import VectorDatabase
 from scraper.scraping.scraper import WebScraper
 from scraper.utility.utils import generate_collection_name
 
-setup_logging()  # Initialize logging at the start of your app
-
 
 def main():
     st.set_page_config(layout="wide")
@@ -33,11 +31,17 @@ def main():
         st.header("Scraping Task")
         url = st.text_input("Enter the URL of the website to scrape:", key="url_input")
         st.session_state.url = url
-        scrape_button = st.button("Start Scraping", on_click=scrape_and_process)
+        running_placeholder = st.empty()
+        scrape_button = st.button(
+            "Start", on_click=lambda: start_scraping(running_placeholder)
+        )
 
         st.header("Configuration")
         st.session_state.max_links = st.number_input(
-            "Max Links to Scrape:", min_value=1, value=2, key="max_links_key"
+            "Max Links to Scrape:",
+            min_value=1,
+            value=ScraperConfig().max_links,
+            key="max_links_key",
         )
         st.warning(
             f"Max {st.session_state.max_links} links will be scraped from the provided URL"
@@ -45,17 +49,20 @@ def main():
         st.session_state.page_load_timeout = st.number_input(
             "Page Load Timeout (seconds):",
             min_value=1,
-            value=15,
+            value=ScraperConfig().page_load_timeout,
             key="page_load_timeout_key",
         )
         st.session_state.page_load_sleep = st.number_input(
             "Page Load Sleep (seconds):",
             min_value=1,
-            value=5,
+            value=ScraperConfig().page_load_sleep,
             key="page_load_sleep_key",
         )
         st.session_state.top_n_chunks = st.number_input(
-            "Top N Chunks for QA:", min_value=1, value=5, key="top_n_chunks_key"
+            "Top N Chunks for QA:",
+            min_value=1,
+            value=QAConfig().top_n_chunks,
+            key="top_n_chunks_key",
         )
 
         if st.button("Clear"):
@@ -79,6 +86,10 @@ def main():
             for status in st.session_state.status:
                 status_container.write(status)
 
+    setup_logging(
+        log_container=progress_container
+    )  # Initialize logging with the Streamlit log container
+
 
 @safe_run
 def scrape_and_process():
@@ -93,7 +104,6 @@ def scrape_and_process():
             return
 
         st.session_state.status = []
-        status_container = st.empty()
 
         scraper_config = ScraperConfig(
             max_links=st.session_state.max_links,
@@ -103,13 +113,14 @@ def scrape_and_process():
 
         scraper = WebScraper(
             st.session_state.url,
-            lambda message: update_progress(message, status_container),
             config=scraper_config,
         )
         documents = scraper.scrape()
         if documents:
             formatted_documents = [{"text": doc} for doc in documents]
             process_documents(formatted_documents)
+        else:
+            st.error("No documents were scraped.")
 
 
 def is_valid_url(url: str) -> bool:
@@ -131,8 +142,6 @@ def url_exists(url: str) -> bool:
 @st.cache_data
 def process_documents(documents):
     """Processes documents and sets up the vector database and QA system."""
-    qa_config = QAConfig(top_n_chunks=st.session_state.top_n_chunks)
-
     vector_db_instance = VectorDatabase(st.session_state.url)
     vector_db_instance.connect_to_milvus()
     vector_db_instance.create_vector_store()
@@ -141,12 +150,11 @@ def process_documents(documents):
     st.session_state.documents = documents
 
     # Prepare QA instance
+    qa_config = QAConfig(top_n_chunks=st.session_state.top_n_chunks)
     qa_instance = QuestionAnswering(
         st.session_state.vector_store, documents, qa_config=qa_config
     )
     st.session_state.qa = qa_instance
-
-    st.success("Vector store and QA setup completed.")
 
 
 def display_qa_interface():
@@ -179,11 +187,11 @@ def clear_state():
     st.experimental_rerun()
 
 
-def update_progress(message, status_container):
-    st.session_state.status.append(message)
-    with status_container.container():
-        for status in st.session_state.status:
-            st.write(status)
+def start_scraping(running_placeholder):
+    """Starts the scraping task"""
+    with running_placeholder:
+        st.text("Running...")
+    scrape_and_process()
 
 
 if __name__ == "__main__":

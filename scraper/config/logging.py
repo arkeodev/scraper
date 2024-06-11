@@ -1,11 +1,24 @@
+# logging.py
 import logging
 import traceback
 
+from scraper.config.scraper_logger import StreamlitHandler
 
-def setup_logging():
+
+def setup_logging(log_container=None):
     logging.basicConfig(
         level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
     )
+    # Set logging level for external packages to WARNING or higher
+    for package in ["selenium", "urllib3", "requests", "webdriver_manager", "bs4"]:
+        logging.getLogger(package).setLevel(logging.WARNING)
+
+    if log_container is not None:
+        streamlit_handler = StreamlitHandler(log_container)
+        streamlit_handler.setLevel(logging.INFO)
+        formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+        streamlit_handler.setFormatter(formatter)
+        logging.getLogger().addHandler(streamlit_handler)
 
 
 def safe_run(func):

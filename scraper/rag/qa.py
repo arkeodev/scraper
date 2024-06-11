@@ -52,7 +52,12 @@ class QuestionAnswering:
             limit=n,
             expr=None,
         )
-        similar_chunks = [result.entity.get("document") for result in results[0]]
+        similar_chunks = [
+            result.entity.get("document")
+            for result in results[0]
+            if result.entity.get("document")
+        ]
+        logging.debug(f"Retrieved similar chunks: {similar_chunks}")
         return similar_chunks
 
     def rerank_chunks(self, question: str, chunks: List[str]) -> List[str]:
@@ -66,6 +71,18 @@ class QuestionAnswering:
         Returns:
             List[str]: The reranked chunks.
         """
+        if not chunks:
+            logging.error("No chunks provided for reranking.")
+            return []
+
+        # Remove any None or empty string values from chunks
+        chunks = [chunk for chunk in chunks if chunk]
+        if not chunks:
+            logging.error("All chunks are None or empty after filtering.")
+            return []
+
+        logging.debug(f"Chunks after filtering: {chunks}")
+
         question_embedding = self.embedding_model.encode(
             question, convert_to_tensor=True
         )
@@ -103,14 +120,28 @@ class QuestionAnswering:
             str: The generated answer.
         """
         similar_chunks = self.retrieve_similar_chunks(question, self.top_n_chunks)
+        if not similar_chunks:
+            logging.error("No similar chunks found for the question.")
+            return "No relevant information found."
+
         reranked_chunks = self.rerank_chunks(question, similar_chunks)
+        if not reranked_chunks:
+            logging.error("Failed to rerank chunks.")
+            return "Failed to retrieve relevant information."
 
         prompt_template = get_prompt_template()
         context = " ".join(reranked_chunks)
         prompt = prompt_template.format(context=context, question=question)
 
+        logging.debug(f"Constructed prompt: {prompt}")
+
         qa_chain = load_qa_chain(
             prompt_template=PromptTemplate(template=prompt_template)
         )
-        response = qa_chain.run({"context": context, "question": question})
+        try:
+            response = qa_chain.run({"context": context, "question": question})
+        except Exception as e:
+            logging.error(f"Error during QA chain run: {e}")
+            return "An error occurred during the question-answering process."
+
         return response
