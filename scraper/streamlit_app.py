@@ -62,13 +62,22 @@ def main():
             clear_state()
 
     with right_column:
-        st.header("Question Answering")
-        display_qa_interface()
+        qa_container = st.container()
+        separator = st.container()
+        progress_container = st.container()
 
-    st.header("Scraping Progress")
-    status_container = st.empty()
-    for status in st.session_state.status:
-        status_container.write(status)
+        with qa_container:
+            st.header("Question Answering")
+            display_qa_interface()
+
+        with separator:
+            st.write(" ")
+
+        with progress_container:
+            st.header("Scraping Progress")
+            status_container = st.empty()
+            for status in st.session_state.status:
+                status_container.write(status)
 
 
 @safe_run
