@@ -1,6 +1,4 @@
-"""
-Purpose: Contains configuration data classes for Milvus, application settings, scraper settings, and QA settings.
-"""
+# config.py
 
 from dataclasses import dataclass
 
@@ -9,7 +7,7 @@ from dataclasses import dataclass
 class MilvusConfig:
     host: str = "localhost"
     port: str = "19530"
-    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model_name: str = "meta-llama/Llama-3-70B"  # Updated to Llama 3
 
 
 @dataclass
@@ -30,4 +28,4 @@ class ScraperConfig:
 @dataclass
 class QAConfig:
     top_n_chunks: int = 5
-    embedding_model_name: str = "sentence-transformers/all-MiniLM-L6-v2"
+    embedding_model_name: str = "meta-llama/Llama-3-70B"  # Updated to Llama 3

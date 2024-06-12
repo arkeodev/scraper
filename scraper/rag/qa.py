@@ -1,3 +1,4 @@
+# qa.py
 import logging
 from typing import Dict, List
 
@@ -43,7 +44,9 @@ class QuestionAnswering:
         Returns:
             List[str]: A list of similar chunks.
         """
-        question_embedding = self.embedding_model.encode(question).tolist()
+        logging.info("Here1")
+        question_embedding = self.embedding_model.encode(question)
+        logging.info(f"Embedded question: {question_embedding}")
         search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
         results = self.vector_store.search(
             data=[question_embedding],
@@ -57,7 +60,7 @@ class QuestionAnswering:
             for result in results[0]
             if result.entity.get("document")
         ]
-        logging.debug(f"Retrieved similar chunks: {similar_chunks}")
+        logging.info(f"Retrieved similar chunks: {similar_chunks}")
         return similar_chunks
 
     def rerank_chunks(self, question: str, chunks: List[str]) -> List[str]:
@@ -119,18 +122,20 @@ class QuestionAnswering:
         Returns:
             str: The generated answer.
         """
+        logging.info(f"Received question: {question}")
         similar_chunks = self.retrieve_similar_chunks(question, self.top_n_chunks)
-        if not similar_chunks:
-            logging.error("No similar chunks found for the question.")
-            return "No relevant information found."
+        # if not similar_chunks:
+        #     logging.error("No similar chunks found for the question.")
+        #     return "No relevant information found."
 
-        reranked_chunks = self.rerank_chunks(question, similar_chunks)
-        if not reranked_chunks:
-            logging.error("Failed to rerank chunks.")
-            return "Failed to retrieve relevant information."
+        # reranked_chunks = self.rerank_chunks(question, similar_chunks)
+        # if not reranked_chunks:
+        #     logging.error("Failed to rerank chunks.")
+        #     return "Failed to retrieve relevant information."
 
         prompt_template = get_prompt_template()
-        context = " ".join(reranked_chunks)
+        # context = " ".join(reranked_chunks)
+        context = ""
         prompt = prompt_template.format(context=context, question=question)
 
         logging.debug(f"Constructed prompt: {prompt}")
@@ -144,4 +149,5 @@ class QuestionAnswering:
             logging.error(f"Error during QA chain run: {e}")
             return "An error occurred during the question-answering process."
 
+        logging.info(f"Returned answer: {response}")
         return response

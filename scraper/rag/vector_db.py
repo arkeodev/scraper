@@ -1,9 +1,4 @@
-"""
-Module: vector_db.py
-Purpose: Manages interactions with a vector database (Milvus) for storing, indexing,
-and retrieving embedded text data along with its metadata.
-"""
-
+# vector_db.py
 import json
 import logging
 from typing import Dict, List
@@ -95,10 +90,6 @@ class VectorDatabase:
             description="Collection for storing text documents with embeddings and metadata.",
         )
 
-        # if utility.has_collection(collection_name):
-        #     utility.drop_collection(collection_name)
-        #     logging.info(f"Existing collection {collection_name} dropped.")
-
         self.collection = Collection(name=collection_name, schema=schema)
         logging.info(f"Collection {collection_name} created successfully.")
 
@@ -125,7 +116,6 @@ class VectorDatabase:
         Processes, embeds, and inserts documents into the vector database.
         Args:
             documents (List[Dict[str, str]]): List of document texts to process and store.
-            collection_name (str): The name of the collection where documents will be inserted.
         """
         for document in documents:
             if not isinstance(document, dict) or "text" not in document:
@@ -134,18 +124,21 @@ class VectorDatabase:
 
             logging.info(f"Processing document: {document['text'][:50]}...")
 
-            chunks = self.chunker.chunk_data([document["text"]])
+            chunks = self.chunker.chunk_data(document["text"])
             for chunk in chunks:
                 if isinstance(chunk, list):
+                    if not chunk:
+                        logging.error("Chunk is empty after chunking.")
+                        continue
                     chunk = chunk[0]
 
                 embedding = self.embedding_model.encode(chunk).tolist()
                 metadata = generate_metadata(chunk, self.url)
                 json_data = json.dumps({"text": chunk, "metadata": metadata})
 
-                logging.debug(f"Embedding: {embedding[:5]}... Length: {len(embedding)}")
-                logging.debug(f"Document: {chunk[:50]}...")
-                logging.debug(f"Metadata: {metadata}")
+                logging.info(f"Embedding: {embedding[:5]}... Length: {len(embedding)}")
+                logging.info(f"Document: {chunk[:50]}...")
+                logging.info(f"Metadata: {metadata}")
 
                 try:
                     self.collection.insert(
@@ -157,11 +150,41 @@ class VectorDatabase:
                             }
                         ]
                     )
-                except Exception as e:
+                except MilvusException as e:
                     logging.error(
                         f"Failed to insert document chunk: {chunk[:50]}... Error: {e}"
                     )
         logging.info(f"Documents inserted successfully into database.")
+
+    def search(self, data, anns_field, param, limit, expr=None):
+        """
+        Searches the vector store for the most similar embeddings.
+
+        Args:
+            data (List): The data (embeddings) to search for.
+            anns_field (str): The field to search in.
+            param (Dict): The search parameters.
+            limit (int): The number of results to return.
+            expr (Optional[str]): The search expression.
+
+        Returns:
+            List: The search results.
+        """
+        try:
+            logging.info(f"Start searching...")
+            results = self.collection.search(
+                data=data,
+                anns_field=anns_field,
+                param=param,
+                limit=limit,
+                expr=expr,
+                output_fields=["document"],
+            )
+            logging.info(f"Search results: {results}")
+            return results
+        except MilvusException as e:
+            logging.error(f"Search failed: {e}")
+            return []
 
     def get_vector_store(self) -> Collection:
         """

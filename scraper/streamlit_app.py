@@ -1,4 +1,6 @@
+# stramliatpp.py
 import logging
+import time
 from urllib.parse import urlparse
 
 import requests
@@ -24,6 +26,20 @@ def main():
         st.session_state.status = []
     if "qa" not in st.session_state:
         st.session_state.qa = None
+    if "vector_store" not in st.session_state:
+        st.session_state.vector_store = None
+    if "documents" not in st.session_state:
+        st.session_state.documents = []
+
+    # Initialize config values only if they are not already set
+    if "max_links" not in st.session_state:
+        st.session_state.max_links = ScraperConfig().max_links
+    if "page_load_timeout" not in st.session_state:
+        st.session_state.page_load_timeout = ScraperConfig().page_load_timeout
+    if "page_load_sleep" not in st.session_state:
+        st.session_state.page_load_sleep = ScraperConfig().page_load_sleep
+    if "top_n_chunks" not in st.session_state:
+        st.session_state.top_n_chunks = QAConfig().top_n_chunks
 
     left_column, _, right_column = st.columns([1, 0.1, 2.6])
 
@@ -40,7 +56,7 @@ def main():
         st.session_state.max_links = st.number_input(
             "Max Links to Scrape:",
             min_value=1,
-            value=ScraperConfig().max_links,
+            value=st.session_state.max_links,
             key="max_links_key",
         )
         st.warning(
@@ -49,19 +65,19 @@ def main():
         st.session_state.page_load_timeout = st.number_input(
             "Page Load Timeout (seconds):",
             min_value=1,
-            value=ScraperConfig().page_load_timeout,
+            value=st.session_state.page_load_timeout,
             key="page_load_timeout_key",
         )
         st.session_state.page_load_sleep = st.number_input(
             "Page Load Sleep (seconds):",
             min_value=1,
-            value=ScraperConfig().page_load_sleep,
+            value=st.session_state.page_load_sleep,
             key="page_load_sleep_key",
         )
         st.session_state.top_n_chunks = st.number_input(
             "Top N Chunks for QA:",
             min_value=1,
-            value=QAConfig().top_n_chunks,
+            value=st.session_state.top_n_chunks,
             key="top_n_chunks_key",
         )
 
@@ -83,8 +99,9 @@ def main():
         with progress_container:
             st.header("Scraping Progress")
             status_container = st.empty()
-            for status in st.session_state.status:
-                status_container.write(status)
+            if "status" in st.session_state:
+                for status in st.session_state.status:
+                    status_container.write(status)
 
     setup_logging(
         log_container=progress_container
@@ -111,11 +128,12 @@ def scrape_and_process():
             page_load_sleep=st.session_state.page_load_sleep,
         )
 
-        scraper = WebScraper(
-            st.session_state.url,
-            config=scraper_config,
-        )
+        scraper = WebScraper(st.session_state.url, config=scraper_config)
+
+        logging.info("Starting scraper.scrape()")
         documents = scraper.scrape()
+        logging.info("Completed scraper.scrape()")
+
         if documents:
             formatted_documents = [{"text": doc} for doc in documents]
             process_documents(formatted_documents)
@@ -157,6 +175,7 @@ def process_documents(documents):
     st.session_state.qa = qa_instance
 
 
+@safe_run
 def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.qa:
@@ -164,8 +183,12 @@ def display_qa_interface():
         if st.button("Get Answer"):
             if question:
                 with st.spinner("Fetching answer..."):
-                    answer = st.session_state.qa.answer_question(question)
-                    st.write(f"**Answer:** {answer}")
+                    try:
+                        st.write(f"**Asking question:** {question}")
+                        answer = st.session_state.qa.answer_question(question)
+                        st.write(f"**Answer:** {answer}")
+                    except Exception as e:
+                        st.error(f"Error fetching answer: {e}")
             else:
                 st.warning("Please enter a question.")
     else:
@@ -179,10 +202,10 @@ def clear_state():
     st.session_state.status = []
     st.session_state.url_input = ""
     st.session_state.question_input = None
-    st.session_state.max_links_key = ScraperConfig().max_links
-    st.session_state.page_load_timeout_key = ScraperConfig().page_load_timeout
-    st.session_state.page_load_sleep_key = ScraperConfig().page_load_sleep
-    st.session_state.top_n_chunks_key = QAConfig().top_n_chunks
+    st.session_state.max_links = ScraperConfig().max_links
+    st.session_state.page_load_timeout = ScraperConfig().page_load_timeout
+    st.session_state.page_load_sleep = ScraperConfig().page_load_sleep
+    st.session_state.top_n_chunks = QAConfig().top_n_chunks
     st.cache_data.clear()
     st.experimental_rerun()
 

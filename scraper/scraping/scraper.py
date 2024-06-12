@@ -1,20 +1,21 @@
 # scraper.py
 import logging
 import time
-from typing import Callable, List, Optional, Set
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from typing import Callable, List, Optional
 from urllib.parse import urljoin, urlparse
 
 from bs4 import BeautifulSoup
-from dask import compute, delayed
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException, WebDriverException
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 
-from scraper.config.config import AppConfig, ScraperConfig
-from scraper.config.logging import safe_run
+from scraper.config.config import ScraperConfig
+from scraper.scraping.link_collector import LinkCollector
 from scraper.scraping.robots import RobotsTxtChecker
+from scraper.scraping.text_extractor import extract_readable_text
 
 
 class WebScraper:
@@ -37,11 +38,9 @@ class WebScraper:
         self.driver = driver if driver else self._setup_driver()
         self.parser = parser if parser else BeautifulSoup
         self.config = config if config else ScraperConfig()
-        self.max_links = self.config.max_links
-        self.page_load_sleep = self.config.page_load_sleep
-        self.page_load_timeout = self.config.page_load_timeout
-        self.visited_urls: Set[str] = set()
         self.documents: List[str] = []
+        self.link_collector = LinkCollector(self.base_url, self.driver, self.parser)
+        self.visited_urls = set()
 
     def _setup_driver(self) -> webdriver.Chrome:
         options = Options()
@@ -54,66 +53,76 @@ class WebScraper:
             service=ChromeService(ChromeDriverManager().install()), options=options
         )
 
-    @safe_run
     def scrape(self) -> List[str]:
         try:
+            logging.info("Starting scraping process")
             self.robots_checker.fetch()
-            links_to_scrape = self._get_links(self.base_url)
-            delayed_tasks = [
-                delayed(self.scrape_page)(link) for link in links_to_scrape
-            ]
-            results = compute(*delayed_tasks, scheduler="threads")
-            self.documents.extend([doc for sublist in results for doc in sublist])
+            logging.info("robots_checker.fetch() completed")
+            links_to_scrape = self.link_collector.collect_all_links(
+                self.config.page_load_timeout, self.config.page_load_sleep
+            )
+            logging.info(f"Collected {len(links_to_scrape)} links")
+            self._scrape_links(links_to_scrape)
         except Exception as e:
             logging.error(f"An error occurred during scraping: {e}")
         finally:
             if self.driver:
                 self.driver.quit()
+        logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
 
-    @safe_run
-    def scrape_page(self, url: str) -> List[str]:
-        if url in self.visited_urls or len(self.visited_urls) >= self.max_links:
-            return []
+    def _scrape_links(self, links_to_scrape: List[str]) -> None:
+        logging.info(f"Scraping links: {links_to_scrape}")
+        with ThreadPoolExecutor(max_workers=10) as executor:
+            future_to_url = {
+                executor.submit(self.scrape_page, url): url for url in links_to_scrape
+            }
+            for future in as_completed(future_to_url):
+                url = future_to_url[future]
+                try:
+                    document = future.result()
+                    if self._is_valid_document(document):
+                        self.documents.append(document)
+                except Exception as e:
+                    logging.error(f"Error scraping {url}: {e}")
+
+    def scrape_page(self, url: str) -> str:
+        logging.info(f"Scraping page: {url}")
+        if not self.link_collector._is_same_domain(url) or url in self.visited_urls:
+            logging.info(f"Skipping URL (same domain or already visited): {url}")
+            return ""
         self.visited_urls.add(url)
         if not self.robots_checker.is_allowed(urlparse(url).path):
             logging.info(f"Access to {url} disallowed by robots.txt.")
-            return []
-        time.sleep(
-            AppConfig().min_interval_between_requests
-        )  # Ensure minimum interval between requests
-        documents = []
+            return ""
+        self.link_collector._wait_for_next_request()
         try:
             logging.info(f"Fetching URL: {url}")
-            self.driver.set_page_load_timeout(self.page_load_timeout)
+            self.driver.set_page_load_timeout(self.config.page_load_timeout)
             self.driver.get(url)
-            time.sleep(self.page_load_sleep)
+            time.sleep(self.config.page_load_sleep)
             page_source = self.driver.page_source
-            soup = self.parser(page_source, "html.parser")
-            texts = [p.get_text(strip=True) for p in soup.find_all("p")]
-            documents.extend(texts)
+            readable_text = extract_readable_text(page_source)
+            logging.info(
+                f"Readable Text: {readable_text[:50]}... Length: {len(readable_text)}"
+            )
+            return readable_text
         except TimeoutException:
             logging.error(f"Timeout while trying to load {url}")
         except WebDriverException as e:
             logging.error(f"WebDriver error: {e}")
         except Exception as e:
             logging.error(f"An unexpected error occurred: {e}")
-        return documents
+        return ""
 
-    def _get_links(self, url: str) -> List[str]:
-        try:
-            self.driver.set_page_load_timeout(self.page_load_timeout)
-            self.driver.get(url)
-            time.sleep(self.page_load_sleep)
-            soup = self.parser(self.driver.page_source, "html.parser")
-            links = [
-                urljoin(url, link["href"]) for link in soup.find_all("a", href=True)
-            ]
-            same_domain_links = [link for link in links if self.is_same_domain(link)]
-            return same_domain_links[: self.max_links]
-        except Exception as e:
-            logging.error(f"Error while getting links from {url}: {e}")
-            return []
+    def _is_valid_document(self, document: str) -> bool:
+        """
+        Checks if the document meets the criteria for being considered a valid document.
 
-    def is_same_domain(self, url: str) -> bool:
-        return urlparse(url).netloc == urlparse(self.base_url).netloc
+        Args:
+            document (str): The document text to be checked.
+
+        Returns:
+            bool: True if the document is valid, False otherwise.
+        """
+        return bool(document and len(document) > 100)

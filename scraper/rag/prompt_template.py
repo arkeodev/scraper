@@ -12,7 +12,7 @@ def get_prompt_template() -> str:
         str: The prompt template.
     """
     return (
-        "Given the following context, answer the question to the best of your ability.\n"
+        "You are an AI assistant. Given the following context, answer the question to the best of your ability.\n"
         "Context: {context}\n"
         "Question: {question}\n"
         "Answer:"

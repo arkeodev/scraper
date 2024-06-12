@@ -1,4 +1,4 @@
-# scraper_logging.py
+# scraper_logger.py
 import logging
 
 import streamlit as st
