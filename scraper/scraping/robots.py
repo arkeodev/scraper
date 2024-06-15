@@ -1,4 +1,7 @@
-# robots.py
+"""
+Module to handle fetching and parsing robots.txt for web scraping permissions.
+"""
+
 import logging
 from typing import Dict, List, Optional
 from urllib.parse import urlparse
@@ -10,7 +13,7 @@ from scraper.config.logging import safe_run
 
 class RobotsTxtChecker:
     """
-    This class fetches and parses the robots.txt file for a given website to manage scraping permissions.
+    Fetches and parses the robots.txt file for a given website to manage scraping permissions.
     """
 
     def __init__(self, base_url: str, requester: Optional[requests.Session] = None):
@@ -21,6 +24,7 @@ class RobotsTxtChecker:
 
     @safe_run
     def fetch(self) -> None:
+        """Fetches and parses the robots.txt file."""
         try:
             response = self.requester.get(self.robots_url)
             response.raise_for_status()
@@ -37,6 +41,7 @@ class RobotsTxtChecker:
 
     @safe_run
     def is_allowed(self, path: str, user_agent: str = "*") -> bool:
+        """Checks if the path is allowed by robots.txt for the given user agent."""
         if user_agent not in self.rules:
             return True
         for disallow_path in self.rules.get(user_agent, []):
@@ -49,6 +54,7 @@ class RobotsTxtChecker:
 
     @safe_run
     def _parse(self, content: str) -> None:
+        """Parses the robots.txt content."""
         current_user_agent = None
         for line in content.splitlines():
             line = line.strip()

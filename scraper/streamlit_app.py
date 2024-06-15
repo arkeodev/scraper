@@ -1,121 +1,127 @@
-# streamlit_app.py
-import streamlit as st
+"""
+Streamlit application for web scraping and question answering.
+"""
 
-from scraper.app.app import ScraperApp
+import logging
+import os
+from typing import List
+
+import streamlit as st
+from dotenv import load_dotenv
+
 from scraper.config.config import QAConfig, ScraperConfig
 from scraper.config.logging import setup_logging
+from scraper.rag.qa import QuestionAnswering
+from scraper.scraping.scraper import WebScraper
+from scraper.utility.utils import is_valid_url, url_exists
+
+load_dotenv()
+
+HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 
 def main():
+    """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")
     st.title("Web Scraping and Q&A")
 
     # Initialize session state variables
-    if "url" not in st.session_state:
-        st.session_state.url = ""
-    if "status" not in st.session_state:
-        st.session_state.status = []
-    if "qa" not in st.session_state:
-        st.session_state.qa = None
-    if "vector_store" not in st.session_state:
-        st.session_state.vector_store = None
-    if "documents" not in st.session_state:
-        st.session_state.documents = []
-
-    if "max_links" not in st.session_state:
-        st.session_state.max_links = ScraperConfig().max_links
-    if "page_load_timeout" not in st.session_state:
-        st.session_state.page_load_timeout = ScraperConfig().page_load_timeout
-    if "page_load_sleep" not in st.session_state:
-        st.session_state.page_load_sleep = ScraperConfig().page_load_sleep
-    if "top_n_chunks" not in st.session_state:
-        st.session_state.top_n_chunks = QAConfig().top_n_chunks
+    initialize_session_state()
 
     left_column, _, right_column = st.columns([1, 0.1, 2.6])
 
     with left_column:
-        st.header("Scraping Task")
-        url = st.text_input("Enter the URL of the website to scrape:", key="url_input")
-        st.session_state.url = url
-        running_placeholder = st.empty()
-        scrape_button = st.button(
-            "Start", on_click=lambda: start_scraping(running_placeholder)
-        )
-
-        st.header("Configuration")
-        st.session_state.max_links = st.number_input(
-            "Max Links to Scrape:",
-            min_value=1,
-            value=st.session_state.max_links,
-            key="max_links_key",
-        )
-        st.warning(
-            f"Max {st.session_state.max_links} links will be scraped from the provided URL"
-        )
-        st.session_state.page_load_timeout = st.number_input(
-            "Page Load Timeout (seconds):",
-            min_value=1,
-            value=st.session_state.page_load_timeout,
-            key="page_load_timeout_key",
-        )
-        st.session_state.page_load_sleep = st.number_input(
-            "Page Load Sleep (seconds):",
-            min_value=1,
-            value=st.session_state.page_load_sleep,
-            key="page_load_sleep_key",
-        )
-        st.session_state.top_n_chunks = st.number_input(
-            "Top N Chunks for QA:",
-            min_value=1,
-            value=st.session_state.top_n_chunks,
-            key="top_n_chunks_key",
-        )
-
-        if st.button("Clear"):
-            clear_state()
+        display_scraping_task()
+        display_configuration()
 
     with right_column:
         qa_container = st.container()
-        separator = st.container()
-        progress_container = st.container()
 
         with qa_container:
             st.header("Question Answering")
             display_qa_interface()
 
-        with separator:
-            st.write(" ")
+    setup_logging()
 
-        with progress_container:
-            st.header("Scraping Progress")
-            status_container = st.empty()
-            if "status" in st.session_state:
-                for status in st.session_state.status:
-                    status_container.write(status)
 
-    setup_logging(
-        log_container=progress_container
-    )  # Initialize logging with the Streamlit log container
+def initialize_session_state():
+    """Initialize session state variables if not already set."""
+    session_defaults = {
+        "url": "",
+        "status": [],
+        "qa": None,
+        "vector_store": None,
+        "documents": [],
+        "max_links": ScraperConfig().max_links,
+    }
+    for key, value in session_defaults.items():
+        if key not in st.session_state:
+            st.session_state[key] = value
+
+
+def display_scraping_task():
+    """Display the scraping task input and controls."""
+    st.header("Scraping Task")
+    url = st.text_input("Enter the URL of the website to scrape:", key="url_input")
+    st.session_state.url = url
+    running_placeholder = st.empty()
+    st.button("Start", on_click=lambda: start_scraping(running_placeholder))
+
+    if st.button("Clear"):
+        clear_state()
+
+
+def scrape_and_process(url: str, config: ScraperConfig) -> QuestionAnswering:
+    """
+    Scrapes the given URL and processes the documents for question answering.
+
+    Args:
+        url (str): The URL to scrape.
+        config (ScraperConfig): Configuration for the scraper.
+
+    Returns:
+        QuestionAnswering: An instance for question answering.
+    """
+    if not is_valid_url(url):
+        raise ValueError("Invalid URL format")
+    if not url_exists(url):
+        raise ValueError("The URL does not exist")
+
+    scraper = WebScraper(url)
+    documents = scraper.scrape()
+    qa_instance = QuestionAnswering(documents)
+    qa_instance.create_index()
+    return qa_instance
+
+
+def display_configuration():
+    """Display configuration options for the scraper."""
+    st.header("Configuration")
+    st.session_state.max_links = st.number_input(
+        "Max Links to Scrape:",
+        min_value=1,
+        value=st.session_state.max_links,
+        key="max_links_key",
+    )
+    st.warning(
+        f"Max {st.session_state.max_links} links will be scraped from the provided URL"
+    )
 
 
 def start_scraping(running_placeholder):
-    """Starts the scraping task"""
+    """Starts the scraping task."""
     with running_placeholder:
         st.text("Running...")
 
-    scraper_config = ScraperConfig(
-        max_links=st.session_state.max_links,
-        page_load_timeout=st.session_state.page_load_timeout,
-        page_load_sleep=st.session_state.page_load_sleep,
-    )
-    scraper_app = ScraperApp(scraper_config)
+    scraper_config = ScraperConfig(max_links=st.session_state.max_links)
 
     try:
-        qa_instance = scraper_app.scrape_and_process(st.session_state.url)
+        qa_instance = scrape_and_process(st.session_state.url, scraper_config)
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
     except Exception as e:
         st.error(f"An error occurred: {e}")
+        logging.error(f"An error occurred during scraping: {e}")
 
 
 def display_qa_interface():
@@ -131,6 +137,7 @@ def display_qa_interface():
                         st.write(f"**Answer:** {answer}")
                     except Exception as e:
                         st.error(f"Error fetching answer: {e}")
+                        logging.error(f"Error fetching answer: {e}")
             else:
                 st.warning("Please enter a question.")
     else:
@@ -145,9 +152,6 @@ def clear_state():
     st.session_state.url_input = ""
     st.session_state.question_input = None
     st.session_state.max_links = ScraperConfig().max_links
-    st.session_state.page_load_timeout = ScraperConfig().page_load_timeout
-    st.session_state.page_load_sleep = ScraperConfig().page_load_sleep
-    st.session_state.top_n_chunks = QAConfig().top_n_chunks
     st.cache_data.clear()
     st.experimental_rerun()
 

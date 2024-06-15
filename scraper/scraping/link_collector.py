@@ -1,4 +1,7 @@
-# link_collector.py
+"""
+Module to collect links from a given web page.
+"""
+
 import logging
 import time
 from typing import Callable, List
@@ -57,6 +60,17 @@ class LinkCollector:
     def _get_links(
         self, url: str, page_load_timeout: int, page_load_sleep: int
     ) -> List[str]:
+        """
+        Extracts links from the given URL.
+
+        Args:
+            url (str): The URL to extract links from.
+            page_load_timeout (int): The timeout for loading the page.
+            page_load_sleep (int): The sleep time after loading the page.
+
+        Returns:
+            List[str]: A list of extracted links.
+        """
         self._wait_for_next_request()
         try:
             logging.info(f"Getting links from URL: {url}")
@@ -82,6 +96,15 @@ class LinkCollector:
             return []
 
     def _is_same_domain_and_path(self, url: str) -> bool:
+        """
+        Checks if the URL is in the same domain and path as the base URL.
+
+        Args:
+            url (str): The URL to check.
+
+        Returns:
+            bool: True if the URL is in the same domain and path, False otherwise.
+        """
         parsed_url = urlparse(url)
         base_url_parsed = urlparse(self.base_url)
         return (
@@ -92,6 +115,12 @@ class LinkCollector:
     def _normalize_link(self, url: str) -> str:
         """
         Normalize URL by removing fragment identifiers and optionally query parameters.
+
+        Args:
+            url (str): The URL to normalize.
+
+        Returns:
+            str: The normalized URL.
         """
         parsed_url = urlparse(url)
         # Remove fragment identifiers
@@ -101,6 +130,9 @@ class LinkCollector:
         return urlunparse(normalized_url)
 
     def _wait_for_next_request(self) -> None:
+        """
+        Ensures a minimum interval between requests to avoid overloading the server.
+        """
         current_time = time.time()
         time_since_last_request = current_time - self.last_request_time
         if time_since_last_request < AppConfig().min_interval_between_requests:

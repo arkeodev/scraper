@@ -1,4 +1,7 @@
-# config.py
+"""
+Configuration module for application settings.
+"""
+
 from dataclasses import dataclass
 
 
@@ -16,9 +19,9 @@ class ScraperConfig:
     page_load_timeout: int = 10
     page_load_sleep: int = 5
     scraping_depth: int = 1
+    min_document_length_to_read: int = 100
 
 
 @dataclass
 class QAConfig:
     top_n_chunks: int = 5
-    embedding_model_name: str = "sentence-transformers/msmarco-distilbert-base-tas-b"

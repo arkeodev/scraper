@@ -1,4 +1,7 @@
-# scraper.py
+"""
+Module for web scraping operations.
+"""
+
 import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -26,23 +29,20 @@ class WebScraper:
     def __init__(
         self,
         base_url: str,
-        config: ScraperConfig,
         robots_checker: Optional[RobotsTxtChecker] = None,
         driver: Optional[webdriver.Chrome] = None,
         parser: Optional[Callable] = None,
     ):
         self.base_url = base_url
-        self.robots_checker = (
-            robots_checker if robots_checker else RobotsTxtChecker(base_url)
-        )
-        self.driver = driver if driver else self._setup_driver()
-        self.parser = parser if parser else BeautifulSoup
-        self.config = config if config else ScraperConfig()
+        self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
+        self.driver = driver or self._setup_driver()
+        self.parser = parser or BeautifulSoup
         self.documents: List[str] = []
         self.link_collector = LinkCollector(self.base_url, self.driver, self.parser)
         self.visited_urls = set()
 
     def _setup_driver(self) -> webdriver.Chrome:
+        """Sets up the Chrome WebDriver."""
         options = Options()
         options.headless = True
         options.add_argument("--no-sandbox")
@@ -54,12 +54,13 @@ class WebScraper:
         )
 
     def scrape(self) -> List[str]:
+        """Starts the scraping process."""
         try:
             logging.info("Starting scraping process")
             self.robots_checker.fetch()
             logging.info("robots_checker.fetch() completed")
             links_to_scrape = self.link_collector.collect_all_links(
-                self.config.page_load_timeout, self.config.page_load_sleep
+                ScraperConfig().page_load_timeout, ScraperConfig().page_load_sleep
             )
             logging.info(f"Collected {len(links_to_scrape)} links")
             self._scrape_links(links_to_scrape)
@@ -72,6 +73,7 @@ class WebScraper:
         return self.documents
 
     def _scrape_links(self, links_to_scrape: List[str]) -> None:
+        """Scrapes the collected links."""
         logging.info(f"Scraping links: {links_to_scrape}")
         with ThreadPoolExecutor(max_workers=10) as executor:
             future_to_url = {
@@ -87,6 +89,7 @@ class WebScraper:
                     logging.error(f"Error scraping {url}: {e}")
 
     def scrape_page(self, url: str) -> str:
+        """Scrapes a single page and extracts readable text."""
         logging.info(f"Scraping page: {url}")
         if (
             not self.link_collector._is_same_domain_and_path(url)
@@ -101,9 +104,9 @@ class WebScraper:
         self.link_collector._wait_for_next_request()
         try:
             logging.info(f"Fetching URL: {url}")
-            self.driver.set_page_load_timeout(self.config.page_load_timeout)
+            self.driver.set_page_load_timeout(ScraperConfig().page_load_timeout)
             self.driver.get(url)
-            time.sleep(self.config.page_load_sleep)
+            time.sleep(ScraperConfig().page_load_sleep)
             page_source = self.driver.page_source
             readable_text = extract_readable_text(page_source)
             logging.info(
@@ -118,7 +121,8 @@ class WebScraper:
             logging.error(f"An unexpected error occurred: {e}")
         return ""
 
-    def _is_valid_document(self, document: str) -> bool:
+    @staticmethod
+    def _is_valid_document(document: str) -> bool:
         """
         Checks if the document meets the criteria for being considered a valid document.
 
@@ -128,4 +132,6 @@ class WebScraper:
         Returns:
             bool: True if the document is valid, False otherwise.
         """
-        return bool(document and len(document) > 100)
+        return bool(
+            document and len(document) > ScraperConfig().min_document_length_to_read
+        )

@@ -1,13 +1,14 @@
-# qa.py
+"""
+Module for handling question-answering functionality using LlamaIndex and a vector store for retrieval.
+"""
+
 import logging
-import os
 from typing import List
 
 from llama_index.core import Document, ListIndex, ServiceContext, VectorStoreIndex
 from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
 from llama_index.core.selectors.llm_selectors import LLMSingleSelector
 from llama_index.core.tools.query_engine import QueryEngineTool
-from sentence_transformers import SentenceTransformer
 
 
 class QuestionAnswering:
@@ -16,16 +17,8 @@ class QuestionAnswering:
     """
 
     def __init__(self, documents: List[str]):
-        logging.info(len(documents))
+        logging.info(f"Number of documents received: {len(documents)}")
         self.documents = [Document(text=text) for text in documents]
-
-        self.api_token = os.getenv("HUGGINGFACE_TOKEN")
-        self.embedding_model = SentenceTransformer(
-            "sentence-transformers/msmarco-distilbert-base-tas-b"
-        )
-        if not self.api_token:
-            raise ValueError("HUGGINGFACE_TOKEN environment variable not set")
-        self.index = None
         self.query_engine = None
 
     def create_index(self):
@@ -33,10 +26,11 @@ class QuestionAnswering:
         Creates the index from the documents.
         """
         service_context = ServiceContext.from_defaults(chunk_size=1024)
-        if len(self.documents) > 1:
-            nodes = service_context.node_parser.get_nodes_from_documents(self.documents)
-        else:
-            nodes = self.documents
+        nodes = (
+            service_context.node_parser.get_nodes_from_documents(self.documents)
+            if len(self.documents) > 1
+            else self.documents
+        )
         vector_index = VectorStoreIndex.from_documents(nodes)
         list_index = ListIndex(nodes)
 
@@ -62,6 +56,12 @@ class QuestionAnswering:
     def query(self, question: str) -> str:
         """
         Queries the index and retrieves an answer based on the input question.
+
+        Args:
+            question (str): The question to ask.
+
+        Returns:
+            str: The answer to the question.
         """
         if not self.query_engine:
             logging.error("Query engine has not been created. Load documents first.")
