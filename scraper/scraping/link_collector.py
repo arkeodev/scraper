@@ -2,23 +2,22 @@
 import logging
 import time
 from typing import Callable, List
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
 from scraper.config.config import AppConfig
 
-logging.basicConfig(level=logging.INFO)
-
 
 class LinkCollector:
     """
-    Collects all links from a base URL that are in the same domain.
+    Collects all links from a base URL that are in the same domain and below the given URL path.
     """
 
     def __init__(self, base_url: str, driver: webdriver.Chrome, parser: Callable):
         self.base_url = base_url
+        self.base_path = urlparse(base_url).path
         self.driver = driver
         self.parser = parser
         self.visited_urls = set()
@@ -28,7 +27,7 @@ class LinkCollector:
         self, page_load_timeout: int, page_load_sleep: int
     ) -> List[str]:
         """
-        Collects all links under the base URL that are in the same domain.
+        Collects all links under the base URL that are in the same domain and below the base URL path.
 
         Args:
             page_load_timeout (int): The timeout for loading pages.
@@ -68,15 +67,38 @@ class LinkCollector:
             links = [
                 urljoin(url, link["href"]) for link in soup.find_all("a", href=True)
             ]
-            same_domain_links = [link for link in links if self._is_same_domain(link)]
-            logging.info(f"Found {len(same_domain_links)} same domain links from {url}")
-            return same_domain_links
+            filtered_links = [
+                self._normalize_link(link)
+                for link in links
+                if self._is_same_domain_and_path(link)
+            ]
+            filtered_links = list(set(filtered_links))  # Remove duplicates
+            logging.info(
+                f"Found {len(filtered_links)} same domain and path links from {url}"
+            )
+            return filtered_links
         except Exception as e:
             logging.error(f"Error while getting links from {url}: {e}")
             return []
 
-    def _is_same_domain(self, url: str) -> bool:
-        return urlparse(url).netloc == urlparse(self.base_url).netloc
+    def _is_same_domain_and_path(self, url: str) -> bool:
+        parsed_url = urlparse(url)
+        base_url_parsed = urlparse(self.base_url)
+        return (
+            parsed_url.netloc == base_url_parsed.netloc
+            and parsed_url.path.startswith(self.base_path)
+        )
+
+    def _normalize_link(self, url: str) -> str:
+        """
+        Normalize URL by removing fragment identifiers and optionally query parameters.
+        """
+        parsed_url = urlparse(url)
+        # Remove fragment identifiers
+        normalized_url = parsed_url._replace(fragment="")
+        # Optionally, remove query parameters
+        normalized_url = normalized_url._replace(query="")
+        return urlunparse(normalized_url)
 
     def _wait_for_next_request(self) -> None:
         current_time = time.time()

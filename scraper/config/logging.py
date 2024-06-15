@@ -1,9 +1,8 @@
 # logging.py
-import asyncio
 import logging
 import traceback
 
-from scraper.config.scraper_logger import StreamlitHandler
+import streamlit as st
 
 
 def setup_logging(log_container=None):
@@ -34,3 +33,14 @@ def safe_run(func):
             return None
 
     return wrapper
+
+
+class StreamlitHandler(logging.Handler):
+    def __init__(self, log_container):
+        super().__init__()
+        self.log_container = log_container
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        with self.log_container:
+            st.write(log_entry)

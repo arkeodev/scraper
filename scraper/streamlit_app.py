@@ -1,25 +1,16 @@
-# stramliatpp.py
-import logging
-import time
-from urllib.parse import urlparse
-
-import requests
+# streamlit_app.py
 import streamlit as st
-from sentence_transformers import SentenceTransformer
 
+from scraper.app.app import ScraperApp
 from scraper.config.config import QAConfig, ScraperConfig
-from scraper.config.logging import safe_run, setup_logging
-from scraper.rag.qa import QuestionAnswering
-from scraper.rag.vector_db import VectorDatabase
-from scraper.scraping.scraper import WebScraper
-from scraper.utility.utils import generate_collection_name
+from scraper.config.logging import setup_logging
 
 
 def main():
     st.set_page_config(layout="wide")
     st.title("Web Scraping and Q&A")
 
-    # Streamlit session state initialization
+    # Initialize session state variables
     if "url" not in st.session_state:
         st.session_state.url = ""
     if "status" not in st.session_state:
@@ -31,7 +22,6 @@ def main():
     if "documents" not in st.session_state:
         st.session_state.documents = []
 
-    # Initialize config values only if they are not already set
     if "max_links" not in st.session_state:
         st.session_state.max_links = ScraperConfig().max_links
     if "page_load_timeout" not in st.session_state:
@@ -108,74 +98,26 @@ def main():
     )  # Initialize logging with the Streamlit log container
 
 
-@safe_run
-def scrape_and_process():
-    """Handles the scraping and processing of the website data."""
-    if st.session_state.url:
-        if not is_valid_url(st.session_state.url):
-            st.error("Invalid URL format. Please enter a valid URL.")
-            return
+def start_scraping(running_placeholder):
+    """Starts the scraping task"""
+    with running_placeholder:
+        st.text("Running...")
 
-        if not url_exists(st.session_state.url):
-            st.error("The URL does not exist. Please enter a valid URL.")
-            return
-
-        st.session_state.status = []
-
-        scraper_config = ScraperConfig(
-            max_links=st.session_state.max_links,
-            page_load_timeout=st.session_state.page_load_timeout,
-            page_load_sleep=st.session_state.page_load_sleep,
-        )
-
-        scraper = WebScraper(st.session_state.url, config=scraper_config)
-
-        logging.info("Starting scraper.scrape()")
-        documents = scraper.scrape()
-        logging.info("Completed scraper.scrape()")
-
-        if documents:
-            formatted_documents = [{"text": doc} for doc in documents]
-            process_documents(formatted_documents)
-        else:
-            st.error("No documents were scraped.")
-
-
-def is_valid_url(url: str) -> bool:
-    """Checks if the URL is in a valid format."""
-    parsed = urlparse(url)
-    return bool(parsed.scheme) and bool(parsed.netloc)
-
-
-def url_exists(url: str) -> bool:
-    """Checks if the URL exists by making a HEAD request."""
-    try:
-        response = requests.head(url, allow_redirects=True, timeout=5)
-        return response.status_code == 200
-    except requests.RequestException:
-        return False
-
-
-@safe_run
-@st.cache_data
-def process_documents(documents):
-    """Processes documents and sets up the vector database and QA system."""
-    vector_db_instance = VectorDatabase(st.session_state.url)
-    vector_db_instance.connect_to_milvus()
-    vector_db_instance.create_vector_store()
-    vector_db_instance.insert_documents(documents)
-    st.session_state.vector_store = vector_db_instance.get_vector_store()
-    st.session_state.documents = documents
-
-    # Prepare QA instance
-    qa_config = QAConfig(top_n_chunks=st.session_state.top_n_chunks)
-    qa_instance = QuestionAnswering(
-        st.session_state.vector_store, documents, qa_config=qa_config
+    scraper_config = ScraperConfig(
+        max_links=st.session_state.max_links,
+        page_load_timeout=st.session_state.page_load_timeout,
+        page_load_sleep=st.session_state.page_load_sleep,
     )
-    st.session_state.qa = qa_instance
+    scraper_app = ScraperApp(scraper_config)
+
+    try:
+        qa_instance = scraper_app.scrape_and_process(st.session_state.url)
+        st.session_state.qa = qa_instance
+        st.session_state.documents = qa_instance.documents
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
 
-@safe_run
 def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.qa:
@@ -185,7 +127,7 @@ def display_qa_interface():
                 with st.spinner("Fetching answer..."):
                     try:
                         st.write(f"**Asking question:** {question}")
-                        answer = st.session_state.qa.answer_question(question)
+                        answer = st.session_state.qa.query(question)
                         st.write(f"**Answer:** {answer}")
                     except Exception as e:
                         st.error(f"Error fetching answer: {e}")
@@ -208,13 +150,6 @@ def clear_state():
     st.session_state.top_n_chunks = QAConfig().top_n_chunks
     st.cache_data.clear()
     st.experimental_rerun()
-
-
-def start_scraping(running_placeholder):
-    """Starts the scraping task"""
-    with running_placeholder:
-        st.text("Running...")
-    scrape_and_process()
 
 
 if __name__ == "__main__":

@@ -3,7 +3,7 @@ import logging
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Optional
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse
 
 from bs4 import BeautifulSoup
 from selenium import webdriver
@@ -15,7 +15,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from scraper.config.config import ScraperConfig
 from scraper.scraping.link_collector import LinkCollector
 from scraper.scraping.robots import RobotsTxtChecker
-from scraper.scraping.text_extractor import extract_readable_text
+from scraper.utility.utils import extract_readable_text
 
 
 class WebScraper:
@@ -88,7 +88,10 @@ class WebScraper:
 
     def scrape_page(self, url: str) -> str:
         logging.info(f"Scraping page: {url}")
-        if not self.link_collector._is_same_domain(url) or url in self.visited_urls:
+        if (
+            not self.link_collector._is_same_domain_and_path(url)
+            or url in self.visited_urls
+        ):
             logging.info(f"Skipping URL (same domain or already visited): {url}")
             return ""
         self.visited_urls.add(url)

@@ -1,13 +1,5 @@
 # config.py
-
 from dataclasses import dataclass
-
-
-@dataclass
-class MilvusConfig:
-    host: str = "localhost"
-    port: str = "19530"
-    embedding_model_name: str = "meta-llama/Llama-3-70B"  # Updated to Llama 3
 
 
 @dataclass
@@ -23,9 +15,10 @@ class ScraperConfig:
     max_links: int = 10
     page_load_timeout: int = 10
     page_load_sleep: int = 5
+    scraping_depth: int = 1
 
 
 @dataclass
 class QAConfig:
     top_n_chunks: int = 5
-    embedding_model_name: str = "meta-llama/Llama-3-70B"  # Updated to Llama 3
+    embedding_model_name: str = "sentence-transformers/msmarco-distilbert-base-tas-b"

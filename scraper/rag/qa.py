@@ -1,153 +1,75 @@
 # qa.py
 import logging
-from typing import Dict, List
+import os
+from typing import List
 
-from langchain.chains.question_answering import load_qa_chain
-from langchain.prompts import PromptTemplate
-from langchain.vectorstores import VectorStore
-from sentence_transformers import SentenceTransformer, util
-
-from scraper.config.config import QAConfig
-from scraper.rag.prompt_template import get_prompt_template
+from llama_index.core import Document, ListIndex, ServiceContext, VectorStoreIndex
+from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
+from llama_index.core.selectors.llm_selectors import LLMSingleSelector
+from llama_index.core.tools.query_engine import QueryEngineTool
+from sentence_transformers import SentenceTransformer
 
 
 class QuestionAnswering:
     """
-    Handles the question-answering functionality using a vector database for retrieval and a language model for generating responses.
+    Handles the question-answering functionality using LlamaIndex and a vector store for retrieval.
     """
 
-    def __init__(
-        self,
-        vector_store: VectorStore,
-        documents: List[Dict[str, str]],
-        qa_config: QAConfig,
-        embedding_model: SentenceTransformer = None,
-    ):
-        self.vector_store = vector_store
-        self.documents = documents
-        self.qa_config = qa_config if qa_config else QAConfig()
-        self.embedding_model = (
-            embedding_model
-            if embedding_model
-            else SentenceTransformer(self.qa_config.embedding_model_name)
+    def __init__(self, documents: List[str]):
+        logging.info(len(documents))
+        self.documents = [Document(text=text) for text in documents]
+
+        self.api_token = os.getenv("HUGGINGFACE_TOKEN")
+        self.embedding_model = SentenceTransformer(
+            "sentence-transformers/msmarco-distilbert-base-tas-b"
         )
-        self.top_n_chunks = self.qa_config.top_n_chunks
+        if not self.api_token:
+            raise ValueError("HUGGINGFACE_TOKEN environment variable not set")
+        self.index = None
+        self.query_engine = None
 
-    def retrieve_similar_chunks(self, question: str, n: int) -> List[str]:
+    def create_index(self):
         """
-        Retrieves the top n similar chunks from the vector store based on the question.
-
-        Args:
-            question (str): The question asked by the user.
-            n (int): The number of similar chunks to retrieve.
-
-        Returns:
-            List[str]: A list of similar chunks.
+        Creates the index from the documents.
         """
-        logging.info("Here1")
-        question_embedding = self.embedding_model.encode(question)
-        logging.info(f"Embedded question: {question_embedding}")
-        search_params = {"metric_type": "L2", "params": {"nprobe": 10}}
-        results = self.vector_store.search(
-            data=[question_embedding],
-            anns_field="embedding",
-            param=search_params,
-            limit=n,
-            expr=None,
+        service_context = ServiceContext.from_defaults(chunk_size=1024)
+        if len(self.documents) > 1:
+            nodes = service_context.node_parser.get_nodes_from_documents(self.documents)
+        else:
+            nodes = self.documents
+        vector_index = VectorStoreIndex.from_documents(nodes)
+        list_index = ListIndex(nodes)
+
+        list_query_engine = list_index.as_query_engine(
+            response_mode="tree_summarize", use_async=True
         )
-        similar_chunks = [
-            result.entity.get("document")
-            for result in results[0]
-            if result.entity.get("document")
-        ]
-        logging.info(f"Retrieved similar chunks: {similar_chunks}")
-        return similar_chunks
 
-    def rerank_chunks(self, question: str, chunks: List[str]) -> List[str]:
-        """
-        Reranks the retrieved chunks based on their relevance to the question.
-
-        Args:
-            question (str): The question asked by the user.
-            chunks (List[str]): The retrieved chunks.
-
-        Returns:
-            List[str]: The reranked chunks.
-        """
-        if not chunks:
-            logging.error("No chunks provided for reranking.")
-            return []
-
-        # Remove any None or empty string values from chunks
-        chunks = [chunk for chunk in chunks if chunk]
-        if not chunks:
-            logging.error("All chunks are None or empty after filtering.")
-            return []
-
-        logging.debug(f"Chunks after filtering: {chunks}")
-
-        question_embedding = self.embedding_model.encode(
-            question, convert_to_tensor=True
+        vector_tool = QueryEngineTool.from_defaults(
+            query_engine=vector_index.as_chat_engine(),
+            description="Retrieves specific content from documents.",
         )
-        chunk_embeddings = self.embedding_model.encode(chunks, convert_to_tensor=True)
-        reranked_indices = self._calculate_similarities(
-            question_embedding, chunk_embeddings
+
+        list_tool = QueryEngineTool.from_defaults(
+            query_engine=list_query_engine,
+            description="Summarizes the content from documents.",
         )
-        return [chunks[i] for i in reranked_indices]
 
-    def _calculate_similarities(
-        self, question_embedding, chunk_embeddings
-    ) -> List[int]:
-        """
-        Calculates the similarities between the question embedding and chunk embeddings.
-
-        Args:
-            question_embedding: The embedding of the question.
-            chunk_embeddings: The embeddings of the chunks.
-
-        Returns:
-            List[int]: The indices of the chunks sorted by similarity.
-        """
-        similarities = util.pytorch_cos_sim(question_embedding, chunk_embeddings)
-        reranked_indices = similarities[0].argsort(descending=True).tolist()
-        return reranked_indices
-
-    def answer_question(self, question: str) -> str:
-        """
-        Generates an answer to the question using the retrieved and reranked chunks and a prompt template.
-
-        Args:
-            question (str): The question asked by the user.
-
-        Returns:
-            str: The generated answer.
-        """
-        logging.info(f"Received question: {question}")
-        similar_chunks = self.retrieve_similar_chunks(question, self.top_n_chunks)
-        # if not similar_chunks:
-        #     logging.error("No similar chunks found for the question.")
-        #     return "No relevant information found."
-
-        # reranked_chunks = self.rerank_chunks(question, similar_chunks)
-        # if not reranked_chunks:
-        #     logging.error("Failed to rerank chunks.")
-        #     return "Failed to retrieve relevant information."
-
-        prompt_template = get_prompt_template()
-        # context = " ".join(reranked_chunks)
-        context = ""
-        prompt = prompt_template.format(context=context, question=question)
-
-        logging.debug(f"Constructed prompt: {prompt}")
-
-        qa_chain = load_qa_chain(
-            prompt_template=PromptTemplate(template=prompt_template)
+        self.query_engine = RouterQueryEngine(
+            selector=LLMSingleSelector.from_defaults(),
+            query_engine_tools=[list_tool, vector_tool],
         )
+
+    def query(self, question: str) -> str:
+        """
+        Queries the index and retrieves an answer based on the input question.
+        """
+        if not self.query_engine:
+            logging.error("Query engine has not been created. Load documents first.")
+            return "Query engine has not been created. Load documents first."
+
         try:
-            response = qa_chain.run({"context": context, "question": question})
+            response = self.query_engine.query(question)
+            return str(response)
         except Exception as e:
-            logging.error(f"Error during QA chain run: {e}")
-            return "An error occurred during the question-answering process."
-
-        logging.info(f"Returned answer: {response}")
-        return response
+            logging.error(f"Failed to process query: {e}")
+            return f"Error: {e}"
