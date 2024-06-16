@@ -1,5 +1,5 @@
 """
-Utility functions for text extraction and prompt template generation.
+Utility functions for text extraction, URL validation, and prompt template generation.
 """
 
 import logging
@@ -26,22 +26,26 @@ def get_prompt_template() -> str:
 
 def extract_readable_text(html: str) -> str:
     """
-    Extracts readable text from HTML content using readability-lxml.
+    Extracts readable text from HTML content using readability-lxml and trafilatura.
 
     Args:
         html (str): The HTML content to extract readable text from.
 
     Returns:
-        str: The extracted readable text.
+        str: The extracted readable text, or an empty string if extraction fails.
     """
     try:
-        doc = Document(html)
-        readable_html = doc.summary()
-        readable_text = trafilatura.extract(readable_html)
-        return readable_text.strip()
+        doc = Document(html)  # Parse the HTML content using readability-lxml.
+        readable_html = doc.summary()  # Get the readable HTML content.
+        readable_text = trafilatura.extract(
+            readable_html
+        )  # Extract readable text using trafilatura.
+        return (
+            readable_text.strip() if readable_text else ""
+        )  # Return the extracted text, stripped of leading/trailing whitespace.
     except Exception as e:
         logging.error(f"Error extracting text: {e}")
-        return ""
+        return ""  # Return an empty string if extraction fails.
 
 
 def extract_text_trafilatura(html: str) -> str:
@@ -52,14 +56,18 @@ def extract_text_trafilatura(html: str) -> str:
         html (str): The HTML content to extract readable text from.
 
     Returns:
-        str: The extracted readable text.
+        str: The extracted readable text, or an empty string if extraction fails.
     """
     try:
-        readable_text = trafilatura.extract(html)
-        return readable_text.strip() if readable_text else ""
+        readable_text = trafilatura.extract(
+            html
+        )  # Extract readable text using trafilatura.
+        return (
+            readable_text.strip() if readable_text else ""
+        )  # Return the extracted text, stripped of leading/trailing whitespace.
     except Exception as e:
         logging.error(f"Error extracting text with trafilatura: {e}")
-        return ""
+        return ""  # Return an empty string if extraction fails.
 
 
 def is_valid_url(url: str) -> bool:
@@ -74,8 +82,10 @@ def is_valid_url(url: str) -> bool:
     """
     from urllib.parse import urlparse
 
-    parsed = urlparse(url)
-    return bool(parsed.scheme) and bool(parsed.netloc)
+    parsed = urlparse(url)  # Parse the URL.
+    return bool(parsed.scheme) and bool(
+        parsed.netloc
+    )  # Check if the URL has a scheme and network location.
 
 
 def url_exists(url: str) -> bool:
@@ -89,7 +99,11 @@ def url_exists(url: str) -> bool:
         bool: True if the URL exists, False otherwise.
     """
     try:
-        response = requests.head(url, allow_redirects=True, timeout=5)
-        return response.status_code == 200
+        response = requests.head(
+            url, allow_redirects=True, timeout=5
+        )  # Send a HEAD request to the URL.
+        return (
+            response.status_code == 200
+        )  # Return True if the response status code is 200 (OK).
     except requests.RequestException:
-        return False
+        return False  # Return False if the request fails.

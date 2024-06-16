@@ -19,6 +19,14 @@ class LinkCollector:
     """
 
     def __init__(self, base_url: str, driver: webdriver.Chrome, parser: Callable):
+        """
+        Initializes the LinkCollector with the base URL, WebDriver, and parser.
+
+        Args:
+            base_url (str): The base URL of the website to scrape.
+            driver (webdriver.Chrome): The WebDriver instance for scraping.
+            parser (Callable): The parser to use for extracting links (e.g., BeautifulSoup).
+        """
         self.base_url = base_url
         self.base_path = urlparse(base_url).path
         self.driver = driver
@@ -40,20 +48,28 @@ class LinkCollector:
             List[str]: A list of collected links.
         """
         collected_links = []
-        links_to_visit = [(self.base_url, 0)]
+        links_to_visit = [(self.base_url, 0)]  # Start with the base URL and depth 0.
 
         while links_to_visit:
-            current_url, depth = links_to_visit.pop(0)
-            if current_url in self.visited_urls or depth > 3:
+            current_url, depth = links_to_visit.pop(
+                0
+            )  # Get the next URL to visit and its depth.
+            if (
+                current_url in self.visited_urls or depth > 3
+            ):  # Skip if already visited or depth exceeds limit.
                 continue
 
-            self.visited_urls.add(current_url)
+            self.visited_urls.add(current_url)  # Mark the URL as visited.
 
-            new_links = self._get_links(current_url, page_load_timeout, page_load_sleep)
+            new_links = self._get_links(
+                current_url, page_load_timeout, page_load_sleep
+            )  # Extract new links.
             for link in new_links:
                 if link not in self.visited_urls:
-                    links_to_visit.append((link, depth + 1))
-                    collected_links.append(link)
+                    links_to_visit.append(
+                        (link, depth + 1)
+                    )  # Add new links to visit list with incremented depth.
+                    collected_links.append(link)  # Collect the new links.
 
         return collected_links
 
@@ -71,22 +87,26 @@ class LinkCollector:
         Returns:
             List[str]: A list of extracted links.
         """
-        self._wait_for_next_request()
+        self._wait_for_next_request()  # Ensure minimum interval between requests.
         try:
             logging.info(f"Getting links from URL: {url}")
-            self.driver.set_page_load_timeout(page_load_timeout)
-            self.driver.get(url)
-            time.sleep(page_load_sleep)
-            soup = self.parser(self.driver.page_source, "html.parser")
+            self.driver.set_page_load_timeout(
+                page_load_timeout
+            )  # Set the page load timeout.
+            self.driver.get(url)  # Load the URL.
+            time.sleep(page_load_sleep)  # Wait for the specified sleep time.
+            soup = self.parser(
+                self.driver.page_source, "html.parser"
+            )  # Parse the page source with BeautifulSoup.
             links = [
                 urljoin(url, link["href"]) for link in soup.find_all("a", href=True)
-            ]
+            ]  # Extract all href links and join with the base URL.
             filtered_links = [
                 self._normalize_link(link)
                 for link in links
                 if self._is_same_domain_and_path(link)
-            ]
-            filtered_links = list(set(filtered_links))  # Remove duplicates
+            ]  # Normalize and filter links to the same domain and path.
+            filtered_links = list(set(filtered_links))  # Remove duplicate links.
             logging.info(
                 f"Found {len(filtered_links)} same domain and path links from {url}"
             )
@@ -123,10 +143,8 @@ class LinkCollector:
             str: The normalized URL.
         """
         parsed_url = urlparse(url)
-        # Remove fragment identifiers
-        normalized_url = parsed_url._replace(fragment="")
-        # Optionally, remove query parameters
-        normalized_url = normalized_url._replace(query="")
+        # Remove fragment identifiers and optionally query parameters.
+        normalized_url = parsed_url._replace(fragment="", query="")
         return urlunparse(normalized_url)
 
     def _wait_for_next_request(self) -> None:
@@ -139,6 +157,6 @@ class LinkCollector:
             wait_time = (
                 AppConfig().min_interval_between_requests - time_since_last_request
             )
-            logging.info(f"Waiting for {wait_time} seconds before next request")
+            logging.info(f"Waiting for {wait_time:.2f} seconds before next request")
             time.sleep(wait_time)
-        self.last_request_time = time.time()
+        self.last_request_time = time.time()  # Update the time of the last request.

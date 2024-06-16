@@ -17,18 +17,48 @@ class RobotsTxtChecker:
     """
 
     def __init__(self, base_url: str, requester: Optional[requests.Session] = None):
-        self.base_url = urlparse(base_url).netloc
-        self.robots_url = f"http://{self.base_url}/robots.txt"
-        self.requester = requester or requests.Session()
-        self.rules: Dict[str, List[str]] = {}
+        """
+        Initializes the RobotsTxtChecker with the base URL and an optional requester session.
+
+        Args:
+            base_url (str): The base URL of the website.
+            requester (Optional[requests.Session]): An optional requests session for making HTTP requests.
+        """
+        self.requester = (
+            requester or requests.Session()
+        )  # Use the provided requester or create a new requests session.
+        self.rules: Dict[
+            str, List[str]
+        ] = {}  # Initialize an empty dictionary to store robots.txt rules.
+        self.robots_url = self._create_robots_url(
+            base_url
+        )  # Construct the URL for the robots.txt file.
+
+    def _create_robots_url(self, base_url: str) -> str:
+        """
+        Creates the URL for the robots.txt file based on the base URL.
+
+        Returns:
+            str: The URL for the robots.txt file.
+        """
+        netloc = urlparse(
+            base_url
+        ).netloc  # Parse the base URL to extract the network location.
+        return (
+            f"http://{netloc}/robots.txt"  # Construct the URL for the robots.txt file.
+        )
 
     @safe_run
     def fetch(self) -> None:
-        """Fetches and parses the robots.txt file."""
+        """
+        Fetches and parses the robots.txt file.
+        """
         try:
-            response = self.requester.get(self.robots_url)
+            response = self.requester.get(
+                self.robots_url
+            )  # Send a GET request to fetch the robots.txt file.
             response.raise_for_status()
-            self._parse(response.text)
+            self._parse(response.text)  # Parse the content of the robots.txt file.
             logging.info("robots.txt fetched and parsed successfully.")
         except requests.RequestException as e:
             if e.response.status_code == 404:
@@ -41,27 +71,47 @@ class RobotsTxtChecker:
 
     @safe_run
     def is_allowed(self, path: str, user_agent: str = "*") -> bool:
-        """Checks if the path is allowed by robots.txt for the given user agent."""
-        if user_agent not in self.rules:
-            return True
-        for disallow_path in self.rules.get(user_agent, []):
+        """
+        Checks if the path is allowed by robots.txt for the given user agent.
+
+        Args:
+            path (str): The path to check.
+            user_agent (str): The user agent string (default is "*").
+
+        Returns:
+            bool: True if the path is allowed, False otherwise.
+        """
+        disallow_paths = self.rules.get(user_agent, [])
+        for disallow_path in disallow_paths:
             if path.startswith(disallow_path):
                 logging.info(
                     f"Access to {path} disallowed for {user_agent} by robots.txt."
                 )
-                return False
-        return True
+                return False  # Access is disallowed if the path matches any disallowed paths.
+        return True  # Allow access if no disallowed paths match.
 
-    @safe_run
     def _parse(self, content: str) -> None:
-        """Parses the robots.txt content."""
+        """
+        Parses the robots.txt content.
+
+        Args:
+            content (str): The content of the robots.txt file.
+        """
         current_user_agent = None
         for line in content.splitlines():
             line = line.strip()
             if line.startswith("User-agent:"):
-                current_user_agent = line.split(":")[1].strip()
-                self.rules[current_user_agent] = []
+                current_user_agent = line.split(":")[
+                    1
+                ].strip()  # Extract the user agent from the line.
+                self.rules[
+                    current_user_agent
+                ] = []  # Initialize a list for disallowed paths.
             elif line.startswith("Disallow:") and current_user_agent is not None:
-                disallow_path = line.split(":")[1].strip()
-                self.rules[current_user_agent].append(disallow_path)
+                disallow_path = line.split(":")[
+                    1
+                ].strip()  # Extract the disallowed path from the line.
+                self.rules[current_user_agent].append(
+                    disallow_path
+                )  # Add the disallowed path to the rules.
         logging.info("robots.txt rules parsed and stored.")
