@@ -36,7 +36,6 @@ def main():
 
     with right_column:
         qa_container = st.container()
-
         with qa_container:
             st.header("Question Answering")
             display_qa_interface()
@@ -52,6 +51,7 @@ def initialize_session_state():
         "qa": None,
         "vector_store": None,
         "documents": [],
+        "chat_history": [],
         "max_links": ScraperConfig().max_links,
     }
     for key, value in session_defaults.items():
@@ -127,19 +127,23 @@ def start_scraping(running_placeholder):
 def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.qa:
-        question = st.text_input("Enter your question:", key="question_input")
-        if st.button("Get Answer"):
+        chat_container = st.container()
+        chat_input = st.text_input("Enter your question:", key="question_input")
+
+        if chat_input and st.button("Send"):
+            question = chat_input.strip()
             if question:
                 with st.spinner("Fetching answer..."):
                     try:
-                        st.write(f"**Asking question:** {question}")
                         answer = st.session_state.qa.query(question)
-                        st.write(f"**Answer:** {answer}")
+                        st.session_state.chat_history.append((question, answer))
                     except Exception as e:
                         st.error(f"Error fetching answer: {e}")
                         logging.error(f"Error fetching answer: {e}")
-            else:
-                st.warning("Please enter a question.")
+
+        for question, answer in st.session_state.chat_history:
+            st.write(f"**Q:** {question}")
+            st.write(f"**A:** {answer}")
     else:
         st.info("Please perform scraping and processing first.")
 
@@ -151,6 +155,7 @@ def clear_state():
     st.session_state.status = []
     st.session_state.url_input = ""
     st.session_state.question_input = None
+    st.session_state.chat_history = []
     st.session_state.max_links = ScraperConfig().max_links
     st.cache_data.clear()
     st.experimental_rerun()

@@ -3,7 +3,7 @@ Module for handling question-answering functionality using LlamaIndex and a vect
 """
 
 import logging
-from typing import List
+from typing import List, Tuple
 
 from llama_index.core import Document, ListIndex, ServiceContext, VectorStoreIndex
 from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
@@ -28,6 +28,7 @@ class QuestionAnswering:
             Document(text=text) for text in documents
         ]  # Convert document strings to Document objects.
         self.query_engine = None
+        self.conversation_history = []  # Initialize conversation history
 
     def create_index(self):
         """
@@ -87,9 +88,20 @@ class QuestionAnswering:
             return "Query engine has not been created. Load documents first."
 
         try:
-            response = self.query_engine.query(
-                question
-            )  # Query the engine with the given question.
+            # Add the question to the conversation history
+            self.conversation_history.append(("Q", question))
+
+            # Formulate the context by concatenating the conversation history
+            context = "\n".join(
+                [f"{q_or_a}: {text}" for q_or_a, text in self.conversation_history]
+            )
+
+            # Query the engine with the given question and context
+            response = self.query_engine.query(context)
+
+            # Add the response to the conversation history
+            self.conversation_history.append(("A", str(response)))
+
             return str(response)
         except Exception as e:
             logging.error(f"Failed to process query: {e}")
