@@ -15,10 +15,10 @@ from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 
-from scraper.config.config import ScraperConfig
-from scraper.scraping.link_collector import LinkCollector
-from scraper.scraping.robots import RobotsTxtChecker
-from scraper.utility.utils import extract_readable_text
+from scraper.config import ScraperConfig
+from scraper.link_collector import LinkCollector
+from scraper.robots import RobotsTxtChecker
+from scraper.utils import extract_readable_text
 
 
 class WebScraper:

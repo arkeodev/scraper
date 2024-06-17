@@ -10,7 +10,7 @@ from urllib.parse import urljoin, urlparse, urlunparse
 from bs4 import BeautifulSoup
 from selenium import webdriver
 
-from scraper.config.config import AppConfig
+from scraper.config import AppConfig
 
 
 class LinkCollector:

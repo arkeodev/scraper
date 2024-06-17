@@ -9,11 +9,11 @@ from typing import List
 import streamlit as st
 from dotenv import load_dotenv
 
-from scraper.config.config import QAConfig, ScraperConfig
-from scraper.config.logging import setup_logging
-from scraper.rag.qa import QuestionAnswering
-from scraper.scraping.scraper import WebScraper
-from scraper.utility.utils import is_valid_url, url_exists
+from scraper.config import QAConfig, ScraperConfig
+from scraper.logging import setup_logging
+from scraper.qa import QuestionAnswering
+from scraper.scraper import WebScraper
+from scraper.utils import is_valid_url, url_exists
 
 load_dotenv()
 
@@ -66,14 +66,13 @@ def initialize_session_state():
 
 def display_scraping_task():
     """Display the scraping task input and controls."""
-    st.header("Scraping Task")
+    st.header("Scraping")
     url = st.text_input(
         "Enter the URL of the website to scrape:",
         key="url_input",
         disabled=st.session_state.scraping_done,
     )
     st.session_state.url = url
-    st.info("Please perform scraping first. Then you can chat.")
     running_placeholder = st.empty()
     st.button(
         "Start",

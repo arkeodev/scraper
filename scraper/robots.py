@@ -8,7 +8,7 @@ from urllib.parse import urlparse
 
 import requests
 
-from scraper.config.logging import safe_run
+from scraper.logging import safe_run
 
 
 class RobotsTxtChecker:
