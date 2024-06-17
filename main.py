@@ -1,11 +1,10 @@
 import logging
 import os
-from typing import List
 
 import streamlit as st
 from dotenv import load_dotenv
 
-from scraper.config import QAConfig, ScraperConfig
+from scraper.config import ScraperConfig
 from scraper.logging import setup_logging
 from scraper.qa import QuestionAnswering
 from scraper.scraper import WebScraper
@@ -131,15 +130,23 @@ def start_scraping(running_placeholder):
 def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.scraping_done:
-        messages = st.container(height=700)
-        if st.session_state.qa:
-            if prompt := st.chat_input(
+        chat_history_container = st.container(height=700, border=False)
+        with chat_history_container:
+            for role, content in st.session_state.chat_history:
+                st.chat_message(role).write(content)
+
+        chat_input_container = st.container(height=80, border=False)
+        with chat_input_container:
+            chat_input = st.chat_input(
                 "Please ask your questions", key="question_input"
-            ):
-                with st.spinner("Fetching answer..."):
-                    answer = st.session_state.qa.query(prompt)
-                    messages.chat_message("user").write(prompt)
-                    messages.chat_message("assistant").write(answer)
+            )
+
+        if st.session_state.qa and chat_input:
+            with st.spinner("Fetching answer..."):
+                answer = st.session_state.qa.query(chat_input)
+                st.session_state.chat_history.append(("user", chat_input))
+                st.session_state.chat_history.append(("assistant", answer))
+                st.rerun()  # Re-run to display new messages
 
 
 def trigger_refresh():
