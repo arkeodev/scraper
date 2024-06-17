@@ -23,7 +23,7 @@ HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 def main():
     """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")
-    st.title("🕸️ Web Scraper & AI-Powered Q&A Assistant 🧠")
+    st.title("🕸️ Scrape Smart 🧠")
 
     # Initialize session state variables
     initialize_session_state()
@@ -66,11 +66,12 @@ def initialize_session_state():
 
 def display_scraping_task():
     """Display the scraping task input and controls."""
-    st.header("Scraping")
+    st.header("AI-Powered Web Scraping")
     url = st.text_input(
         "Enter the URL of the website to scrape:",
         key="url_input",
         disabled=st.session_state.scraping_done,
+        placeholder="http://example.com",
     )
     st.session_state.url = url
     running_placeholder = st.empty()
@@ -79,7 +80,7 @@ def display_scraping_task():
         on_click=lambda: start_scraping(running_placeholder),
         disabled=st.session_state.scraping_done,
     )
-    st.button("Restart Scraping", on_click=clear_state)
+    st.button("Refresh", on_click=clear_state)
 
 
 def scrape_and_process(url: str, config: ScraperConfig) -> QuestionAnswering:
@@ -116,7 +117,7 @@ def display_configuration():
         disabled=st.session_state.scraping_done,
     )
     st.warning(
-        f"Max {st.session_state.max_links} links will be scraped from the provided URL"
+        f"Up to {st.session_state.max_links} links will be scraped from the provided URL"
     )
 
 
@@ -142,9 +143,9 @@ def display_qa_interface():
     if st.session_state.qa:
         chat_container = st.container()
         with chat_container:
-            for chat_message in st.session_state.chat_history:
-                role, message = chat_message
-                st.chat_message(role).write(message)
+            for message in st.session_state.chat_history:
+                role, content = message
+                chat_container.chat_message(role).write(content)
 
 
 def handle_user_input(prompt):

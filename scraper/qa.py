@@ -3,15 +3,9 @@ Module for handling question-answering functionality using LlamaIndex and a vect
 """
 
 import logging
-from typing import List, Tuple
+from typing import List
 
-from llama_index.core import (
-    Document,
-    ListIndex,
-    ServiceContext,
-    VectorStoreIndex,
-    set_global_service_context,
-)
+from llama_index.core import Document, ListIndex, ServiceContext, VectorStoreIndex
 from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
 from llama_index.core.selectors.llm_selectors import LLMSingleSelector
 from llama_index.core.tools.query_engine import QueryEngineTool
@@ -44,7 +38,6 @@ class QuestionAnswering:
             chunk_size=1024,
             # llm=None
         )
-        set_global_service_context(service_context)
 
         # Parse the documents into nodes based on the number of documents.
         nodes = (
