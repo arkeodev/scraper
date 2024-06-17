@@ -23,7 +23,7 @@ HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 def main():
     """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")
-    st.title("Web Scraping and Q&A")
+    st.title("🕸️ Web Scraper & AI-Powered Q&A Assistant 🧠")
 
     # Initialize session state variables
     initialize_session_state()
@@ -35,12 +35,15 @@ def main():
         display_configuration()
 
     with right_column:
-        qa_container = st.container()
-        with qa_container:
-            st.header("Question Answering")
-            display_qa_interface()
+        display_qa_interface()
 
     setup_logging()
+
+    # Chat input outside columns
+    if st.session_state.scraping_done:
+        prompt = st.chat_input(placeholder="Your question")
+        if prompt:
+            handle_user_input(prompt)
 
 
 def initialize_session_state():
@@ -53,6 +56,8 @@ def initialize_session_state():
         "documents": [],
         "chat_history": [],
         "max_links": ScraperConfig().max_links,
+        "scraping_done": False,  # Track if scraping is done
+        "question_input": "",
     }
     for key, value in session_defaults.items():
         if key not in st.session_state:
@@ -62,13 +67,20 @@ def initialize_session_state():
 def display_scraping_task():
     """Display the scraping task input and controls."""
     st.header("Scraping Task")
-    url = st.text_input("Enter the URL of the website to scrape:", key="url_input")
+    url = st.text_input(
+        "Enter the URL of the website to scrape:",
+        key="url_input",
+        disabled=st.session_state.scraping_done,
+    )
     st.session_state.url = url
+    st.info("Please perform scraping first. Then you can chat.")
     running_placeholder = st.empty()
-    st.button("Start", on_click=lambda: start_scraping(running_placeholder))
-
-    if st.button("Clear"):
-        clear_state()
+    st.button(
+        "Start",
+        on_click=lambda: start_scraping(running_placeholder),
+        disabled=st.session_state.scraping_done,
+    )
+    st.button("Restart Scraping", on_click=clear_state)
 
 
 def scrape_and_process(url: str, config: ScraperConfig) -> QuestionAnswering:
@@ -102,6 +114,7 @@ def display_configuration():
         min_value=1,
         value=st.session_state.max_links,
         key="max_links_key",
+        disabled=st.session_state.scraping_done,
     )
     st.warning(
         f"Max {st.session_state.max_links} links will be scraped from the provided URL"
@@ -119,6 +132,7 @@ def start_scraping(running_placeholder):
         qa_instance = scrape_and_process(st.session_state.url, scraper_config)
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
+        st.session_state.scraping_done = True  # Mark scraping as done
     except Exception as e:
         st.error(f"An error occurred: {e}")
         logging.error(f"An error occurred during scraping: {e}")
@@ -128,24 +142,23 @@ def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.qa:
         chat_container = st.container()
-        chat_input = st.text_input("Enter your question:", key="question_input")
+        with chat_container:
+            for chat_message in st.session_state.chat_history:
+                role, message = chat_message
+                st.chat_message(role).write(message)
 
-        if chat_input and st.button("Send"):
-            question = chat_input.strip()
-            if question:
-                with st.spinner("Fetching answer..."):
-                    try:
-                        answer = st.session_state.qa.query(question)
-                        st.session_state.chat_history.append((question, answer))
-                    except Exception as e:
-                        st.error(f"Error fetching answer: {e}")
-                        logging.error(f"Error fetching answer: {e}")
 
-        for question, answer in st.session_state.chat_history:
-            st.write(f"**Q:** {question}")
-            st.write(f"**A:** {answer}")
-    else:
-        st.info("Please perform scraping and processing first.")
+def handle_user_input(prompt):
+    """Handles user input for the QA interface."""
+    with st.spinner("Fetching answer..."):
+        try:
+            answer = st.session_state.qa.query(prompt)
+            st.session_state.chat_history.append(("user", prompt))
+            st.session_state.chat_history.append(("assistant", answer))
+            display_qa_interface()
+        except Exception as e:
+            st.error(f"Error fetching answer: {e}")
+            logging.error(f"Error fetching answer: {e}")
 
 
 def clear_state():
@@ -157,6 +170,7 @@ def clear_state():
     st.session_state.question_input = None
     st.session_state.chat_history = []
     st.session_state.max_links = ScraperConfig().max_links
+    st.session_state.scraping_done = False
     st.cache_data.clear()
     st.experimental_rerun()
 
