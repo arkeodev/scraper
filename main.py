@@ -42,7 +42,6 @@ def initialize_session_state():
         "url": "",
         "status": [],
         "qa": None,
-        "vector_store": None,
         "documents": [],
         "chat_history": [],
         "max_links": ScraperConfig().max_links,
