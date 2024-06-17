@@ -1,7 +1,3 @@
-"""
-Streamlit application for web scraping and question answering.
-"""
-
 import logging
 import os
 from typing import List
@@ -41,9 +37,11 @@ def main():
 
     # Chat input outside columns
     if st.session_state.scraping_done:
-        prompt = st.chat_input(placeholder="Your question")
-        if prompt:
-            handle_user_input(prompt)
+        right_column.write("---")
+        with right_column:
+            prompt = st.text_input("Please ask your questions", key="question_input")
+            if prompt:
+                handle_user_input(prompt)
 
 
 def initialize_session_state():
@@ -58,6 +56,7 @@ def initialize_session_state():
         "max_links": ScraperConfig().max_links,
         "scraping_done": False,  # Track if scraping is done
         "question_input": "",
+        "refresh_triggered": False,  # Flag to trigger refresh
     }
     for key, value in session_defaults.items():
         if key not in st.session_state:
@@ -80,7 +79,7 @@ def display_scraping_task():
         on_click=lambda: start_scraping(running_placeholder),
         disabled=st.session_state.scraping_done,
     )
-    st.button("Refresh", on_click=clear_state)
+    st.button("Refresh", on_click=trigger_refresh)
 
 
 def scrape_and_process(url: str, config: ScraperConfig) -> QuestionAnswering:
@@ -142,10 +141,9 @@ def display_qa_interface():
     """Displays the QA interface for user interaction."""
     if st.session_state.qa:
         chat_container = st.container()
-        with chat_container:
-            for message in st.session_state.chat_history:
-                role, content = message
-                chat_container.chat_message(role).write(content)
+        for role, content in st.session_state.chat_history:
+            with chat_container:
+                st.chat_message(role).write(content)
 
 
 def handle_user_input(prompt):
@@ -155,10 +153,15 @@ def handle_user_input(prompt):
             answer = st.session_state.qa.query(prompt)
             st.session_state.chat_history.append(("user", prompt))
             st.session_state.chat_history.append(("assistant", answer))
-            display_qa_interface()
+            display_qa_interface()  # Update the chat interface with the new messages
         except Exception as e:
             st.error(f"Error fetching answer: {e}")
             logging.error(f"Error fetching answer: {e}")
+
+
+def trigger_refresh():
+    """Triggers a refresh by setting the flag."""
+    st.session_state.refresh_triggered = True
 
 
 def clear_state():
@@ -172,8 +175,11 @@ def clear_state():
     st.session_state.max_links = ScraperConfig().max_links
     st.session_state.scraping_done = False
     st.cache_data.clear()
+    st.session_state.refresh_triggered = False  # Reset the refresh trigger flag
     st.experimental_rerun()
 
 
 if __name__ == "__main__":
+    if st.session_state.get("refresh_triggered"):
+        clear_state()
     main()
