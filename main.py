@@ -35,14 +35,6 @@ def main():
 
     setup_logging()
 
-    # Chat input outside columns
-    if st.session_state.scraping_done:
-        right_column.write("---")
-        with right_column:
-            prompt = st.text_input("Please ask your questions", key="question_input")
-            if prompt:
-                handle_user_input(prompt)
-
 
 def initialize_session_state():
     """Initialize session state variables if not already set."""
@@ -139,24 +131,16 @@ def start_scraping(running_placeholder):
 
 def display_qa_interface():
     """Displays the QA interface for user interaction."""
-    if st.session_state.qa:
-        chat_container = st.container()
-        for role, content in st.session_state.chat_history:
-            with chat_container:
-                st.chat_message(role).write(content)
-
-
-def handle_user_input(prompt):
-    """Handles user input for the QA interface."""
-    with st.spinner("Fetching answer..."):
-        try:
-            answer = st.session_state.qa.query(prompt)
-            st.session_state.chat_history.append(("user", prompt))
-            st.session_state.chat_history.append(("assistant", answer))
-            display_qa_interface()  # Update the chat interface with the new messages
-        except Exception as e:
-            st.error(f"Error fetching answer: {e}")
-            logging.error(f"Error fetching answer: {e}")
+    if st.session_state.scraping_done:
+        messages = st.container(height=700)
+        if st.session_state.qa:
+            if prompt := st.chat_input(
+                "Please ask your questions", key="question_input"
+            ):
+                with st.spinner("Fetching answer..."):
+                    answer = st.session_state.qa.query(prompt)
+                    messages.chat_message("user").write(prompt)
+                    messages.chat_message("assistant").write(answer)
 
 
 def trigger_refresh():
