@@ -8,13 +8,6 @@ from scraper.logging import setup_logging
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
 
-# load_dotenv()
-
-HUGGINGFACE_TOKEN = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
-
-# HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
-
-
 def main():
     """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")

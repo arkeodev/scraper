@@ -28,8 +28,7 @@ class QuestionAnswering:
         """
         self.documents = [Document(text=text) for text in documents]
         self.embedding_model_name = embedding_model_name
-        self.conversation_history = []  # Initialize conversation history
-        self.llm_api_token = os.getenv("HUGGINGFACE_TOKEN")
+        self.conversation_history = []
         self.llm = None
 
     def create_index(self):

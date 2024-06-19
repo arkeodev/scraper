@@ -6,22 +6,6 @@ from dataclasses import dataclass
 
 
 @dataclass
-class AppConfig:
-    """
-    Configuration for application-wide settings.
-
-    Attributes:
-        requests_per_minute (int): The maximum number of requests per minute.
-        min_interval_between_requests (float): The minimum interval between requests in seconds, calculated from requests per minute.
-    """
-
-    requests_per_minute: int = 10
-    min_interval_between_requests: float = (
-        60 / 10
-    )  # Calculated from requests per minute to determine the minimum interval between requests.
-
-
-@dataclass
 class ScraperConfig:
     """
     Configuration for the web scraper settings.
@@ -51,7 +35,6 @@ class QAConfig:
     """
 
     top_n_chunks: int = 5
-    llm_url: str = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
 
 
 # Matches the embedding model names with the language
