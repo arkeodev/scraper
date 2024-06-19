@@ -4,7 +4,6 @@ import os
 import streamlit as st
 from dotenv import load_dotenv
 
-from scraper.config import ScraperConfig
 from scraper.logging import setup_logging
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
@@ -41,7 +40,6 @@ def initialize_session_state():
         "qa": None,
         "documents": [],
         "chat_history": [],
-        "max_links": ScraperConfig().max_links,
         "scraping_done": False,  # Track if scraping is done
         "question_input": "",
         "refresh_triggered": False,  # Flag to trigger refresh
@@ -60,7 +58,6 @@ def clear_state():
     st.session_state.question_input = None
     st.session_state.chat_history = []
     st.session_state.language_key = "english"
-    st.session_state.max_links = ScraperConfig().max_links
     st.session_state.scraping_done = False
     st.cache_data.clear()
     st.session_state.refresh_triggered = False  # Reset the refresh trigger flag

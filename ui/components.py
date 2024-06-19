@@ -19,16 +19,6 @@ class ConfigurationUI:
             key="language_key",
             disabled=st.session_state.scraping_done,
         )
-        st.session_state.max_links = st.number_input(
-            "Max Links to Scrape:",
-            min_value=1,
-            value=st.session_state.max_links,
-            key="max_links_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.warning(
-            f"Up to {st.session_state.max_links} links will be scraped from the provided URL"
-        )
 
 
 class ScrapingUI:
@@ -44,14 +34,6 @@ class ScrapingUI:
         )
         st.session_state.url = url
         running_placeholder = st.empty()
-        if "selected_urls" not in st.session_state:
-            st.session_state.selected_urls = []
-
-        # Add a container to display selected URLs
-        with st.expander("Selected URLs"):
-            for link in st.session_state.selected_urls:
-                st.write(link)
-
         st.button(
             "Start",
             on_click=lambda: start_scraping(running_placeholder),

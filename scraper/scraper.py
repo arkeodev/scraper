@@ -4,8 +4,6 @@ Module for web scraping operations.
 
 import logging
 import time
-from collections import deque
-from concurrent.futures import ThreadPoolExecutor, as_completed
 from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
@@ -17,7 +15,6 @@ from selenium.webdriver.chrome.service import Service as ChromeService
 from webdriver_manager.chrome import ChromeDriverManager
 
 from scraper.config import ScraperConfig
-from scraper.link_collector import LinkCollector
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
@@ -47,8 +44,7 @@ class WebScraper:
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
         self.driver = driver or self._setup_driver()
         self.parser = parser or BeautifulSoup
-        self.documents = deque()  # Use deque for thread-safe collection
-        self.link_collector = LinkCollector(self.base_url, self.driver, self.parser)
+        self.documents = []  # Use list to store documents
         self.visited_urls = set()
 
     def _setup_driver(self) -> webdriver.Chrome:
@@ -79,12 +75,10 @@ class WebScraper:
         try:
             logging.info("Starting scraping process")
             self.robots_checker.fetch()  # Fetch and parse robots.txt
-            logging.info("robots_checker.fetch() completed")
-            links_to_scrape = self.link_collector.collect_all_links(
-                ScraperConfig().page_load_timeout, ScraperConfig().page_load_sleep
-            )  # Collect all links to scrape
-            logging.info(f"Collected {len(links_to_scrape)} links")
-            self._scrape_links(links_to_scrape)  # Scrape the collected links
+            if not self.robots_checker.is_allowed(urlparse(self.base_url).path):
+                logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
+                return []
+            self._scrape_page(self.base_url)
         except Exception as e:
             logging.error(f"An error occurred during scraping: {e}")
         finally:
@@ -93,74 +87,14 @@ class WebScraper:
         logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
 
-    def _scrape_links(self, links_to_scrape: List[str]) -> None:
-        logging.info(f"Scraping links: {links_to_scrape}")
-        with ThreadPoolExecutor(max_workers=10) as executor:
-            future_to_url = {
-                executor.submit(self.scrape_page, url): url for url in links_to_scrape
-            }
-            for future in as_completed(future_to_url):
-                if len(self.documents) >= ScraperConfig.max_links:
-                    executor.shutdown(wait=False)
-                    logging.info("Reached maximum number of links to scrape. Stopping.")
-                    break
-                url = future_to_url[future]
-                try:
-                    document = future.result()
-                    if document and self._is_valid_document(document):
-                        if (
-                            url not in self.visited_urls
-                        ):  # Check if URL is not already visited
-                            self.documents.append(document)  # Append valid documents
-                            self.visited_urls.add(url)  # Add to visited URLs
-                except Exception as e:
-                    logging.error(f"Error scraping {url}: {e}")
-
-    def scrape_page(self, url: str) -> str:
+    def _scrape_page(self, url: str) -> None:
         logging.info(f"Scraping page: {url}")
-        if (
-            not self.link_collector._is_same_domain_and_path(url)
-            or url in self.visited_urls
-        ):
-            logging.info(f"Skipping URL (same domain or already visited): {url}")
-            return ""
-        if not self.robots_checker.is_allowed(urlparse(url).path):
-            logging.info(f"Access to {url} disallowed by robots.txt.")
-            return ""
-        self.link_collector._wait_for_next_request()
-        try:
-            logging.info(f"Fetching URL: {url}")
-            self.driver.set_page_load_timeout(ScraperConfig.page_load_timeout)
-            self.driver.get(url)
-            time.sleep(ScraperConfig.page_load_sleep)
-            page_source = self.driver.page_source
-            readable_text = extract_readable_text(page_source)
-            if len(readable_text.strip()) == 0:
-                logging.warning(f"No readable text found at {url}")
-                return ""
-            logging.info(
-                f"Readable Text: {readable_text[:50]}... Length: {len(readable_text)}"
-            )
-            return readable_text
-        except TimeoutException:
-            logging.error(f"Timeout while trying to load {url}")
-        except WebDriverException as e:
-            logging.error(f"WebDriver error: {e}")
-        except Exception as e:
-            logging.error(f"An unexpected error occurred: {e}")
-        return ""
-
-    @staticmethod
-    def _is_valid_document(document: str) -> bool:
-        """
-        Checks if the document meets the criteria for being considered a valid document.
-
-        Args:
-            document (str): The document text to be checked.
-
-        Returns:
-            bool: True if the document is valid, False otherwise.
-        """
-        return bool(
-            document and len(document) > ScraperConfig().min_document_length_to_read
-        )
+        self.driver.set_page_load_timeout(ScraperConfig.page_load_timeout)
+        self.driver.get(url)
+        time.sleep(ScraperConfig.page_load_sleep)
+        page_source = self.driver.page_source
+        readable_text = extract_readable_text(page_source)
+        if readable_text:
+            self.documents.append(readable_text)
+        else:
+            logging.warning(f"No readable text found at {url}")

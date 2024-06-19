@@ -6,8 +6,7 @@ import logging
 import os
 from typing import List
 
-import requests
-from llama_index.core import Document, ListIndex, Settings, VectorStoreIndex
+from llama_index.core import Document, ListIndex, VectorStoreIndex
 from llama_index.core.query_engine.router_query_engine import RouterQueryEngine
 from llama_index.core.selectors.llm_selectors import LLMSingleSelector
 from llama_index.core.tools.query_engine import QueryEngineTool
@@ -27,16 +26,11 @@ class QuestionAnswering:
         Args:
             documents (List[str]): A list of documents as strings.
         """
-        logging.info(f"Number of documents received: {len(documents)}")
-        logging.info(f"Docs: {[doc[:5] for doc in documents]}")
         self.documents = [Document(text=text) for text in documents]
         self.embedding_model_name = embedding_model_name
         self.conversation_history = []  # Initialize conversation history
         self.llm_api_token = os.getenv("HUGGINGFACE_TOKEN")
         self.llm = None
-
-        # Initialize service context with custom models
-        # self.service_context = CustomServiceContext.from_custom_models(self.embedding_model_name)
 
     def create_index(self):
         """
@@ -91,14 +85,12 @@ class QuestionAnswering:
             logging.error(f"Failed to create index: {e}")
             raise
 
-    def query(self, question: str, retry_attempts=3, backoff_factor=0.3) -> str:
+    def query(self, question: str) -> str:
         """
         Queries the index and retrieves an answer based on the input question.
 
         Args:
             question (str): The question to ask.
-            retry_attempts (int): Number of retry attempts for handling rate limits.
-            backoff_factor (float): Backoff factor for exponential backoff strategy.
 
         Returns:
             str: The answer to the question.
