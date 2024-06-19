@@ -172,3 +172,6 @@ cython_debug/
 # milvus files
 embedEtcd.yaml
 volumes/
+
+# streamlit files
+.streamlit/secrets.toml

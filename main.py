@@ -7,9 +7,12 @@ from dotenv import load_dotenv
 from scraper.logging import setup_logging
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
-load_dotenv()
 
-HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
+# load_dotenv()
+
+HUGGINGFACE_TOKEN = st.secrets["HUGGINGFACEHUB_API_TOKEN"]
+
+# HUGGINGFACE_TOKEN = os.getenv("HUGGINGFACE_TOKEN")
 
 
 def main():
