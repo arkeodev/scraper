@@ -8,6 +8,7 @@ readability-lxml==0.8.1
 trafilatura==1.10.0
 tenacity==8.2.3
 llama-index==0.10.45
+llama-index-embeddings-huggingface==0.2.2
 transformers==4.41.2
 sentence-transformers==3.0.1
 pytest==8.2.2
