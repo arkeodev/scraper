@@ -37,7 +37,7 @@ class ScraperConfig:
     max_links: int = 10
     page_load_timeout: int = 10
     page_load_sleep: int = 5
-    scraping_depth: int = 1
+    scraping_depth: int = 1  # Depth configuration for scraping
     min_document_length_to_read: int = 100  # Minimum length for a document to be read.
 
 
@@ -51,3 +51,11 @@ class QAConfig:
     """
 
     top_n_chunks: int = 5
+    llm_url: str = "https://api-inference.huggingface.co/models/meta-llama/Meta-Llama-3-8B-Instruct"
+
+
+# Matches the embedding model names with the language
+embedding_models_dict = {
+    "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
+    "english": "BAAI/bge-small-en-v1.5",
+}

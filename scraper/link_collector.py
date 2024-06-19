@@ -7,10 +7,9 @@ import time
 from typing import Callable, List
 from urllib.parse import urljoin, urlparse, urlunparse
 
-from bs4 import BeautifulSoup
 from selenium import webdriver
 
-from scraper.config import AppConfig
+from scraper.config import AppConfig, ScraperConfig
 
 
 class LinkCollector:
@@ -50,12 +49,13 @@ class LinkCollector:
         collected_links = []
         links_to_visit = [(self.base_url, 0)]  # Start with the base URL and depth 0.
 
-        while links_to_visit:
+        while links_to_visit and len(collected_links) < ScraperConfig().max_links:
             current_url, depth = links_to_visit.pop(
                 0
             )  # Get the next URL to visit and its depth.
             if (
-                current_url in self.visited_urls or depth > 3
+                current_url in self.visited_urls
+                or depth > ScraperConfig().scraping_depth
             ):  # Skip if already visited or depth exceeds limit.
                 continue
 
@@ -65,7 +65,10 @@ class LinkCollector:
                 current_url, page_load_timeout, page_load_sleep
             )  # Extract new links.
             for link in new_links:
-                if link not in self.visited_urls:
+                if (
+                    link not in self.visited_urls
+                    and len(collected_links) < ScraperConfig().max_links
+                ):
                     links_to_visit.append(
                         (link, depth + 1)
                     )  # Add new links to visit list with incremented depth.

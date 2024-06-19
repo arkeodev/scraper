@@ -1,3 +1,4 @@
+# ui/components.py
 import streamlit as st
 
 from scraper.main import start_scraping, trigger_refresh
@@ -10,6 +11,14 @@ class ConfigurationUI:
     def display():
         """Display configuration options for the scraper."""
         st.header("Configuration")
+        st.session_state.language = st.selectbox(
+            "Select the Language of the Web Site:",
+            options=("english", "turkish"),
+            placeholder="Select language...",
+            index=0,
+            key="language_key",
+            disabled=st.session_state.scraping_done,
+        )
         st.session_state.max_links = st.number_input(
             "Max Links to Scrape:",
             min_value=1,
@@ -25,9 +34,7 @@ class ConfigurationUI:
 class ScrapingUI:
     """Class to handle the display and functionality of the scraping task."""
 
-    @staticmethod
     def display():
-        """Display the scraping task input and controls."""
         st.header("AI-Powered Web Scraping")
         url = st.text_input(
             "Enter the URL of the website to scrape:",
@@ -37,6 +44,14 @@ class ScrapingUI:
         )
         st.session_state.url = url
         running_placeholder = st.empty()
+        if "selected_urls" not in st.session_state:
+            st.session_state.selected_urls = []
+
+        # Add a container to display selected URLs
+        with st.expander("Selected URLs"):
+            for link in st.session_state.selected_urls:
+                st.write(link)
+
         st.button(
             "Start",
             on_click=lambda: start_scraping(running_placeholder),

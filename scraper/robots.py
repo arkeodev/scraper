@@ -68,6 +68,8 @@ class RobotsTxtChecker:
             else:
                 logging.error(f"Failed to fetch robots.txt from {self.robots_url}: {e}")
                 raise ConnectionError(f"Error fetching robots.txt: {e}")
+        finally:
+            self.requester.close()
 
     @safe_run
     def is_allowed(self, path: str, user_agent: str = "*") -> bool:

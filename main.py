@@ -1,4 +1,4 @@
-import logging
+# main.py
 import os
 
 import streamlit as st
@@ -6,9 +6,6 @@ from dotenv import load_dotenv
 
 from scraper.config import ScraperConfig
 from scraper.logging import setup_logging
-from scraper.qa import QuestionAnswering
-from scraper.scraper import WebScraper
-from scraper.utils import is_valid_url, url_exists
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
 load_dotenv()
@@ -62,11 +59,12 @@ def clear_state():
     st.session_state.url_input = ""
     st.session_state.question_input = None
     st.session_state.chat_history = []
+    st.session_state.language_key = "english"
     st.session_state.max_links = ScraperConfig().max_links
     st.session_state.scraping_done = False
     st.cache_data.clear()
     st.session_state.refresh_triggered = False  # Reset the refresh trigger flag
-    st.experimental_rerun()
+    st.rerun()
 
 
 if __name__ == "__main__":
