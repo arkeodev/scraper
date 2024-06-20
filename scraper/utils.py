@@ -3,10 +3,14 @@ Utility functions for text extraction, URL validation, and prompt template gener
 """
 
 import logging
+import subprocess
+import sys
 
 import requests
 import trafilatura
 from readability import Document
+
+from scraper.errors import BrowserLaunchError
 
 
 def get_prompt_template() -> str:
@@ -108,3 +112,27 @@ def url_exists(url: str) -> bool:
     except requests.RequestException as e:
         logging.error(f"URL check failed: {e}")
         return False  # Return False if the request fails.
+
+
+def install_playwright_chromium() -> None:
+    """
+    Installs Playwright and the necessary Chromium browser.
+    """
+    try:
+        import playwright
+
+        logging.info("Playwright is already installed.")
+    except ImportError:
+        logging.info("Installing Playwright...")
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"])
+        logging.info("Playwright installed successfully.")
+
+    logging.info("Installing Playwright Chromium browser...")
+    try:
+        subprocess.run(
+            [sys.executable, "-m", "playwright", "install", "chromium"], check=True
+        )
+        logging.info("Playwright Chromium browser installed successfully.")
+    except subprocess.CalledProcessError as e:
+        logging.error(f"Failed to install Playwright Chromium browser: {e}")
+        raise BrowserLaunchError("Failed to install Playwright Chromium browser")

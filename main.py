@@ -2,6 +2,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from scraper.logging import setup_logging
+from scraper.utils import install_playwright_chromium
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
 
@@ -23,6 +24,7 @@ def main():
         QAInterface.display()
 
     setup_logging()
+    install_playwright_chromium()
 
 
 def initialize_session_state():
