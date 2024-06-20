@@ -35,7 +35,7 @@ class ScrapingUI:
             disabled=st.session_state.scraping_done,
             placeholder="http://example.com",
         )
-        st.write("Here3")
+        st.write(f"Here3: {url}")
         st.session_state.url = url
         st.write("Here4")
         running_placeholder = st.empty()
