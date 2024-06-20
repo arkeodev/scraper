@@ -42,17 +42,13 @@ class WebScraper:
             parser (Optional[Callable]): Optional HTML parser.
         """
         self.base_url = base_url
-        st.write(base_url)
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
         st.write("ws2")
         self.driver = driver or self._setup_driver()
         st.write("ws3")
         self.parser = parser or BeautifulSoup
-        st.write("ws4")
         self.documents = []  # Use list to store documents
-        st.write("ws5")
         self.visited_urls = set()
-        st.write("ws6")
 
     def _setup_driver(self) -> webdriver.Chrome:
         """
@@ -67,6 +63,7 @@ class WebScraper:
         options.add_argument("--disable-dev-shm-usage")
         options.add_argument("--disable-gpu")
         options.add_argument("--headless")  # Ensure headless mode is set
+        st.write("ws21")
         logging.info("Setting up Chrome WebDriver")
         return webdriver.Chrome(
             service=ChromeService(ChromeDriverManager().install()), options=options
