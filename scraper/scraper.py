@@ -1,23 +1,19 @@
-"""
-Module for web scraping operations.
-"""
-
 import logging
+import subprocess
+import sys
 import time
 from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
+import streamlit as st
 from bs4 import BeautifulSoup
-from selenium import webdriver
-from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service as ChromeService
-from webdriver_manager.chrome import ChromeDriverManager
+from playwright.sync_api import Browser
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import Playwright, sync_playwright
 
 from scraper.config import ScraperConfig
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
-
-import streamlit as st
 
 
 class WebScraper:
@@ -29,7 +25,6 @@ class WebScraper:
         self,
         base_url: str,
         robots_checker: Optional[RobotsTxtChecker] = None,
-        driver: Optional[webdriver.Chrome] = None,
         parser: Optional[Callable] = None,
     ):
         """
@@ -38,35 +33,53 @@ class WebScraper:
         Args:
             base_url (str): The base URL to scrape.
             robots_checker (Optional[RobotsTxtChecker]): Optional robots.txt checker.
-            driver (Optional[webdriver.Chrome]): Optional Selenium WebDriver.
             parser (Optional[Callable]): Optional HTML parser.
         """
         self.base_url = base_url
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
-        self.driver = driver or self._setup_driver()
         self.parser = parser or BeautifulSoup
         self.documents = []  # Use list to store documents
         self.visited_urls = set()
+        self._install_playwright_chromium()
 
-    def _setup_driver(self) -> webdriver.Chrome:
+    def _install_playwright_chromium(self) -> None:
         """
-        Sets up the Chrome WebDriver.
+        Installs Playwright and the necessary browsers.
+        """
+        try:
+            import playwright  # Check if playwright is already installed
+
+            logging.info("Playwright is already installed.")
+        except ImportError:
+            logging.info("Installing Playwright...")
+            subprocess.check_call(
+                [sys.executable, "-m", "pip", "install", "playwright"]
+            )
+            logging.info("Playwright installed successfully.")
+
+        logging.info("Installing Playwright Chromium browser...")
+        try:
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install", "chromium"], check=True
+            )
+            logging.info("Playwright Chromium browser installed successfully.")
+        except subprocess.CalledProcessError as e:
+            logging.error(f"Failed to install Playwright Chromium browser: {e}")
+            raise
+
+    def _setup_browser(self, playwright: Playwright) -> Browser:
+        """
+        Sets up the Playwright Browser.
 
         Returns:
-            webdriver.Chrome: Configured Chrome WebDriver.
+            Browser: Configured Playwright Browser.
         """
-        options = Options()
-        options.headless = True
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("user-agent=Chrome/114.0.5735.90")
-        options.add_argument("--headless")  # Ensure headless mode is set
-        logging.info("Setting up Chrome WebDriver")
-        return webdriver.Chrome(
-            service=ChromeService(ChromeDriverManager("114.0.5735.90").install()),
-            options=options,
-        )
+        logging.info("Setting up Playwright Chromium Browser")
+        try:
+            return playwright.chromium.launch(headless=True)
+        except PlaywrightError as e:
+            logging.error(f"An error occurred while launching the browser: {e}")
+            raise
 
     def scrape(self) -> List[str]:
         """
@@ -81,23 +94,28 @@ class WebScraper:
             if not self.robots_checker.is_allowed(urlparse(self.base_url).path):
                 logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
                 return []
-            self._scrape_page(self.base_url)
+
+            with sync_playwright() as playwright:
+                try:
+                    browser = self._setup_browser(playwright)
+                    self._scrape_page(browser, self.base_url)
+                    browser.close()
+                except PlaywrightError as e:
+                    logging.error(f"An error occurred during scraping: {e}")
         except Exception as e:
             logging.error(f"An error occurred during scraping: {e}")
-        finally:
-            if self.driver:
-                self.driver.quit()  # Ensure the driver is quit after scraping
         logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
 
-    def _scrape_page(self, url: str) -> None:
+    def _scrape_page(self, browser: Browser, url: str) -> None:
         logging.info(f"Scraping page: {url}")
-        self.driver.set_page_load_timeout(ScraperConfig.page_load_timeout)
-        self.driver.get(url)
+        page = browser.new_page()
+        page.goto(url)
         time.sleep(ScraperConfig.page_load_sleep)
-        page_source = self.driver.page_source
+        page_source = page.content()
         readable_text = extract_readable_text(page_source)
         if readable_text:
             self.documents.append(readable_text)
         else:
             logging.warning(f"No readable text found at {url}")
+        page.close()

@@ -52,7 +52,7 @@ class QAInterface:
     def display():
         """Displays the QA interface for user interaction."""
         if st.session_state.scraping_done:
-            chat_history_container = st.container(height=700, border=False)
+            chat_history_container = st.container(height=620, border=False)
             with chat_history_container:
                 for role, content in st.session_state.chat_history:
                     st.chat_message(role).write(content)
