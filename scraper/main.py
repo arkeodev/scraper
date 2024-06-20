@@ -18,7 +18,6 @@ def start_scraping(running_placeholder: st.empty):
         return
 
     embedding_model_name = embedding_models_dict[st.session_state.language]
-    st.write(embedding_model_name)
 
     try:
         qa_instance = scrape_and_process(st.session_state.url, embedding_model_name)
@@ -47,16 +46,17 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
     """
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {embedding_model_name}")
+    st.write("here1")
 
     if not is_valid_url(url):
         raise ValueError("Invalid URL format")
+    st.write("here2")
     if not url_exists(url):
         raise ValueError("The URL does not exist")
+    st.write("here3")
 
     scraper = WebScraper(url)
-    st.write(f"here1")
     documents = scraper.scrape()
-    st.write(f"here1")
 
     if documents is None:
         logging.error("Scraper returned None for documents")
