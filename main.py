@@ -1,4 +1,3 @@
-# main.py
 import os
 
 import streamlit as st
@@ -39,6 +38,7 @@ def initialize_session_state():
         "scraping_done": False,  # Track if scraping is done
         "question_input": "",
         "refresh_triggered": False,  # Flag to trigger refresh
+        "error_message": "",  # Error message state
     }
     for key, value in session_defaults.items():
         if key not in st.session_state:
@@ -57,7 +57,8 @@ def clear_state():
     st.session_state.scraping_done = False
     st.cache_data.clear()
     st.session_state.refresh_triggered = False  # Reset the refresh trigger flag
-    st.rerun()
+    st.session_state.error_message = ""  # Reset error message
+    st.experimental_rerun()
 
 
 if __name__ == "__main__":

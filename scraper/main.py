@@ -14,6 +14,13 @@ def start_scraping(running_placeholder: st.empty):
     with running_placeholder:
         st.text("Running...")
 
+    if not st.session_state.url:
+        st.session_state.error_message = (
+            "URL cannot be empty. Please enter a valid URL."
+        )
+        st.rerun()
+        return
+
     embedding_model_name = embedding_models_dict[st.session_state.language]
 
     try:
@@ -21,9 +28,13 @@ def start_scraping(running_placeholder: st.empty):
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
         st.session_state.scraping_done = True  # Mark scraping as done
+        st.session_state.error_message = ""  # Clear error message
+    except ValueError as ve:
+        st.session_state.error_message = f"An error occurred: {ve}"
+        logging.error(f"An error occurred during scraping: {ve}")
     except Exception as e:
-        st.error(f"An error occurred: {e}")
-        logging.error(f"An error occurred during scraping: {e}")
+        st.session_state.error_message = f"An unexpected error occurred: {e}"
+        logging.error(f"An unexpected error occurred during scraping: {e}")
 
 
 def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering:
@@ -32,6 +43,7 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
 
     Args:
         url (str): The URL to scrape.
+        embedding_model_name (str): The name of the embedding model to use.
 
     Returns:
         QuestionAnswering: An instance for question answering.
@@ -51,3 +63,4 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
 def trigger_refresh():
     """Triggers a refresh by setting the flag."""
     st.session_state.refresh_triggered = True
+    st.rerun()

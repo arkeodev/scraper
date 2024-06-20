@@ -24,6 +24,7 @@ class ConfigurationUI:
 class ScrapingUI:
     """Class to handle the display and functionality of the scraping task."""
 
+    @staticmethod
     def display():
         st.header("AI-Powered Web Scraping")
         url = st.text_input(
@@ -34,6 +35,8 @@ class ScrapingUI:
         )
         st.session_state.url = url
         running_placeholder = st.empty()
+        if st.session_state.error_message:
+            st.error(st.session_state.error_message)
         st.button(
             "Start",
             on_click=lambda: start_scraping(running_placeholder),
