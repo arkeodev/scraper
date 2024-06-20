@@ -51,11 +51,8 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
         raise ValueError("Invalid URL format")
     if not url_exists(url):
         raise ValueError("The URL does not exist")
-    st.write("here3")
     scraper = WebScraper(url)
-    st.write("here4")
     documents = scraper.scrape()
-    st.write("here5")
 
     if documents is None:
         logging.error("Scraper returned None for documents")
