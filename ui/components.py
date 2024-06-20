@@ -26,15 +26,20 @@ class ScrapingUI:
 
     @staticmethod
     def display():
+        st.write("Here1")
         st.header("AI-Powered Web Scraping")
+        st.write("Here2")
         url = st.text_input(
             "Enter the URL of the website to scrape:",
             key="url_input",
-            # disabled=st.session_state.scraping_done,
-            # placeholder="http://example.com",
+            disabled=st.session_state.scraping_done,
+            placeholder="http://example.com",
         )
+        st.write("Here3")
         st.session_state.url = url
+        st.write("Here4")
         running_placeholder = st.empty()
+        st.write("Here5")
         if st.session_state.error_message:
             error_message = st.session_state.error_message
             st.error(f"Error message is: {st.session_state.error_message}")
