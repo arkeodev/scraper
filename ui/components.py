@@ -30,8 +30,8 @@ class ScrapingUI:
         url = st.text_input(
             "Enter the URL of the website to scrape:",
             key="url_input",
-            disabled=st.session_state.scraping_done,
-            placeholder="http://example.com",
+            # disabled=st.session_state.scraping_done,
+            # placeholder="http://example.com",
         )
         st.session_state.url = url
         running_placeholder = st.empty()
