@@ -53,10 +53,12 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
     st.write("here2")
     if not url_exists(url):
         raise ValueError("The URL does not exist")
-    st.write("here3")
+    st.write(f"here3: {url}")
 
     scraper = WebScraper(url)
+    st.write("here3")
     documents = scraper.scrape()
+    st.write("here3")
 
     if documents is None:
         logging.error("Scraper returned None for documents")
