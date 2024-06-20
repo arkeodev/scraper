@@ -57,6 +57,7 @@ class RobotsTxtChecker:
             response = self.requester.get(
                 self.robots_url
             )  # Send a GET request to fetch the robots.txt file.
+            logging.error(response.status_code)
             response.raise_for_status()
             self._parse(response.text)  # Parse the content of the robots.txt file.
             logging.info("robots.txt fetched and parsed successfully.")
