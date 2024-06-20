@@ -57,10 +57,10 @@ class WebScraper:
         """
         options = Options()
         options.headless = True
-        options.add_argument("--no-sandbox")
-        options.add_argument("--disable-dev-shm-usage")
-        options.add_argument("--disable-gpu")
-        options.add_argument("user-agent=Chrome/114.0.5735.90")
+        # options.add_argument("--no-sandbox")
+        # options.add_argument("--disable-dev-shm-usage")
+        # options.add_argument("--disable-gpu")
+        # options.add_argument("user-agent=Chrome/114.0.5735.90")
         options.add_argument("--headless")  # Ensure headless mode is set
         logging.info("Setting up Chrome WebDriver")
         return webdriver.Chrome(
