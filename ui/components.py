@@ -40,9 +40,8 @@ class ScrapingUI:
         st.write("Here4")
         running_placeholder = st.empty()
         st.write("Here5")
-        if st.session_state.error_message:
-            error_message = st.session_state.error_message
-            st.error(f"Error message is: {st.session_state.error_message}")
+        if st.session_state.error_mes:
+            st.error(f"Error message is: {st.session_state.error_mes}")
         st.button(
             "Start",
             on_click=lambda: start_scraping(running_placeholder),

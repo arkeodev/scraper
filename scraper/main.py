@@ -14,24 +14,23 @@ def start_scraping(running_placeholder: st.empty):
         st.text("Running...")
 
     if not st.session_state.url:
-        st.session_state.error_message = (
-            "URL cannot be empty. Please enter a valid URL."
-        )
+        st.session_state.error_mes = "URL cannot be empty. Please enter a valid URL."
         return
 
     embedding_model_name = embedding_models_dict[st.session_state.language]
+    st.write(embedding_model_name)
 
     try:
         qa_instance = scrape_and_process(st.session_state.url, embedding_model_name)
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
         st.session_state.scraping_done = True  # Mark scraping as done
-        st.session_state.error_message = ""  # Clear error message
+        st.session_state.error_mes = ""  # Clear error message
     except ValueError as ve:
-        st.session_state.error_message = f"An error occurred: {ve}"
+        st.session_state.error_mes = f"An error occurred: {ve}"
         logging.error(f"An error occurred during scraping: {ve}")
     except Exception as e:
-        st.session_state.error_message = f"An unexpected error occurred: {e}"
+        st.session_state.error_mes = f"An unexpected error occurred: {e}"
         logging.error(f"An unexpected error occurred during scraping: {e}")
 
 
