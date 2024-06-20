@@ -17,6 +17,8 @@ from scraper.config import ScraperConfig
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
+import streamlit as st
+
 
 class WebScraper:
     """
@@ -40,7 +42,9 @@ class WebScraper:
             parser (Optional[Callable]): Optional HTML parser.
         """
         self.base_url = base_url
+        st.write(base_url)
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
+        st.write("ws2")
         self.driver = driver or self._setup_driver()
         self.parser = parser or BeautifulSoup
         self.documents = []  # Use list to store documents

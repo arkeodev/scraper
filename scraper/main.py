@@ -46,19 +46,16 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
     """
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {embedding_model_name}")
-    st.write("here1")
 
     if not is_valid_url(url):
         raise ValueError("Invalid URL format")
-    st.write("here2")
     if not url_exists(url):
         raise ValueError("The URL does not exist")
-    st.write(f"here3: {url}")
-
+    st.write("here3")
     scraper = WebScraper(url)
-    st.write("here3")
+    st.write("here4")
     documents = scraper.scrape()
-    st.write("here3")
+    st.write("here5")
 
     if documents is None:
         logging.error("Scraper returned None for documents")
