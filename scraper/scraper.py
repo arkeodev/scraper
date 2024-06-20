@@ -46,9 +46,13 @@ class WebScraper:
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
         st.write("ws2")
         self.driver = driver or self._setup_driver()
+        st.write("ws3")
         self.parser = parser or BeautifulSoup
+        st.write("ws4")
         self.documents = []  # Use list to store documents
+        st.write("ws5")
         self.visited_urls = set()
+        st.write("ws6")
 
     def _setup_driver(self) -> webdriver.Chrome:
         """
