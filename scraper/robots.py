@@ -10,8 +10,6 @@ import requests
 
 from scraper.logging import safe_run
 
-import streamlit as st
-
 
 class RobotsTxtChecker:
     """
@@ -59,15 +57,11 @@ class RobotsTxtChecker:
             response = self.requester.get(
                 self.robots_url
             )  # Send a GET request to fetch the robots.txt file.
-            st.write(f"response status: {response.status_code}")
             response.raise_for_status()
-            st.write(f"here1")
             self._parse(response.text)  # Parse the content of the robots.txt file.
             logging.info("robots.txt fetched and parsed successfully.")
         except requests.RequestException as e:
-            st.write(f"here2")
             if e.response.status_code == 404:
-                st.write(f"here3")
                 logging.warning(
                     f"robots.txt not found at {self.robots_url}, proceeding without it."
                 )

@@ -1,6 +1,5 @@
 # scraper.main.py
 import logging
-
 import streamlit as st
 
 from scraper.config import embedding_models_dict

@@ -3,7 +3,6 @@ Module for handling question-answering functionality using LlamaIndex and a vect
 """
 
 import logging
-import os
 from typing import List
 
 from llama_index.core import Document, ListIndex, VectorStoreIndex

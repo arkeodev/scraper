@@ -17,8 +17,6 @@ from scraper.config import ScraperConfig
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
-import streamlit as st
-
 
 class WebScraper:
     """
@@ -75,14 +73,10 @@ class WebScraper:
         """
         try:
             logging.info("Starting scraping process")
-            st.write(f"here1")
             self.robots_checker.fetch()  # Fetch and parse robots.txt
-            st.write(f"here2")
             if not self.robots_checker.is_allowed(urlparse(self.base_url).path):
-                st.write(f"here4")
                 logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
                 return []
-            st.write(f"here3")
             self._scrape_page(self.base_url)
         except Exception as e:
             logging.error(f"An error occurred during scraping: {e}")
