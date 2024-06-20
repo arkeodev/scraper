@@ -18,7 +18,6 @@ def start_scraping(running_placeholder: st.empty):
         st.session_state.error_message = (
             "URL cannot be empty. Please enter a valid URL."
         )
-        st.rerun()
         return
 
     embedding_model_name = embedding_models_dict[st.session_state.language]
@@ -48,6 +47,9 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
     Returns:
         QuestionAnswering: An instance for question answering.
     """
+    logging.info(f"Scraping URL: {url}")
+    logging.info(f"Using embedding model: {embedding_model_name}")
+
     if not is_valid_url(url):
         raise ValueError("Invalid URL format")
     if not url_exists(url):
@@ -55,6 +57,13 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
 
     scraper = WebScraper(url)
     documents = scraper.scrape()
+
+    if documents is None:
+        logging.error("Scraper returned None for documents")
+        raise ValueError("Failed to scrape documents")
+
+    logging.info(f"Scraped {len(documents)} documents")
+
     qa_instance = QuestionAnswering(documents, embedding_model_name)
     qa_instance.create_index()
     return qa_instance

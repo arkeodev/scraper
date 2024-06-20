@@ -105,5 +105,6 @@ def url_exists(url: str) -> bool:
         return (
             response.status_code == 200
         )  # Return True if the response status code is 200 (OK).
-    except requests.RequestException:
+    except requests.RequestException as e:
+        logging.error(f"URL check failed: {e}")
         return False  # Return False if the request fails.
