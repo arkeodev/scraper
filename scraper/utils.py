@@ -132,6 +132,10 @@ def install_playwright_chromium() -> None:
             [sys.executable, "-m", "playwright", "install", "chromium"], check=True
         )
         logging.info("Playwright Chromium browser installed successfully.")
+        subprocess.run([sys.executable, "-m", "playwright", "install-deps"], check=True)
+        logging.info("Playwright Chromium browser dependencies installed successfully.")
     except subprocess.CalledProcessError as e:
-        logging.error(f"Failed to install Playwright Chromium browser: {e}")
+        logging.error(
+            f"Failed to install Playwright Chromium and its dependencies: {e}"
+        )
         raise BrowserLaunchError("Failed to install Playwright Chromium browser")
