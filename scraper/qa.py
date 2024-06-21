@@ -12,6 +12,8 @@ from llama_index.core.tools.query_engine import QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 
+from scraper.errors import CreateIndexError, QueryError
+
 
 class QuestionAnswering:
     """
@@ -79,7 +81,7 @@ class QuestionAnswering:
             )
 
             logging.info("Index created successfully.")
-        except Exception as e:
+        except CreateIndexError as e:
             logging.error(f"Failed to create index: {e}")
             raise
 
@@ -121,6 +123,6 @@ class QuestionAnswering:
 
             return llm_response
 
-        except Exception as e:
+        except QueryError as e:
             logging.error(f"Failed to process query: {e}")
             return f"Error: {e}"

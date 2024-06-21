@@ -7,10 +7,12 @@ import time
 from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
-from playwright.sync_api import sync_playwright, Browser, Error as PlaywrightError
+from playwright.sync_api import Browser
+from playwright.sync_api import Error as PlaywrightError
+from playwright.sync_api import sync_playwright
 
 from scraper.config import ScraperConfig
-from scraper.errors import BrowserLaunchError
+from scraper.errors import BrowserLaunchError, PageScrapingError
 from scraper.robots import RobotsTxtChecker, RobotsTxtError
 from scraper.utils import extract_readable_text
 
@@ -68,7 +70,7 @@ class WebScraper:
             self._parse_page(page_source)
             page.close()
             browser.close()
-        except Exception as e:
+        except PageScrapingError as e:
             logging.error(f"An error occurred during scraping: {e}")
         logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
@@ -97,5 +99,5 @@ class WebScraper:
         readable_text = self.parser(page_content)
         if readable_text:
             self.documents.append(readable_text)
-        else:
-            logging.warning(f"No readable text found at {self.base_url}")
+            return
+        logging.warning(f"No readable text found at {self.base_url}")

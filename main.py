@@ -1,7 +1,7 @@
 import streamlit as st
 
 from scraper.logging import setup_logging
-from ui.components import ConfigurationUI, QAInterface, ScrapingUI
+from scraper.ui_components import ConfigurationUI, QAInterface, ScrapingUI
 
 
 def main():

@@ -4,14 +4,10 @@ Utility functions for text extraction, URL validation, and prompt template gener
 
 import logging
 import os
-import subprocess
-import sys
 
 import requests
 import trafilatura
 from readability import Document
-
-from subprocess import CalledProcessError
 
 from scraper.errors import BrowserLaunchError
 
@@ -121,23 +117,11 @@ def install_playwright_chromium() -> None:
     """
     Installs Playwright and the necessary Chromium browser.
     """
-    try:
-        import playwright
-
-        logging.info("Playwright is already installed.")
-    except ImportError:
-        logging.info("Installing Playwright...")
-        subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"])
-        logging.info("Playwright installed successfully.")
 
     try:
-        subprocess.run(
-            [sys.executable, "-m", "playwright", "install", "chromium"], check=True
-        )
+        os.system("playwright install")
         logging.info("Playwright Chromium browser installed successfully.")
-
         os.system("playwright install-deps")
-        # subprocess.run([sys.executable, "-m", "playwright", "install-deps"], check=True)
         logging.info("Playwright Chromium browser dependencies installed successfully.")
     except CalledProcessError as e:
         logging.error(

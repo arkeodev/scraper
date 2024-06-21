@@ -15,7 +15,25 @@ class BrowserLaunchError(ScraperError):
     pass
 
 
+class PageScrapingError(ScraperError):
+    """Raised when the page scraping fails."""
+
+    pass
+
+
 class RobotsTxtError(ScraperError):
     """Raised when there is an error with robots.txt handling."""
+
+    pass
+
+
+class CreateIndexError(ScraperError):
+    """Raised when there is an error with index creation."""
+
+    pass
+
+
+class QueryError(ScraperError):
+    """Raised when there is an error with LLM query."""
 
     pass
