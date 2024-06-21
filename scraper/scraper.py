@@ -7,6 +7,7 @@ import time
 from typing import Callable, List, Optional
 from urllib.parse import urlparse
 
+import streamlit as st
 from playwright.sync_api import Browser
 from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import Playwright, sync_playwright
@@ -15,8 +16,6 @@ from scraper.config import ScraperConfig
 from scraper.errors import BrowserLaunchError
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
-
-import streamlit as st
 
 
 class WebScraper:
@@ -44,7 +43,7 @@ class WebScraper:
         Returns:
             Browser: Configured Playwright Browser.
         """
-        logging.info("Setting up Playwright Chromium Browser")
+        logging.info("Launching Playwright Chromium Browser")
         try:
             st.write(f"here3")
             pr = playwright.chromium.launch(headless=True)
@@ -70,14 +69,20 @@ class WebScraper:
 
             with sync_playwright() as playwright:
                 browser = self._setup_browser(playwright)
-                self._scrape_page(browser, self.base_url)
+                logging.info(f"Scraping page: {self.base_url}")
+                page = browser.new_page()
+                page.goto(self.base_url)
+                time.sleep(ScraperConfig.page_load_sleep)
+                page_source = page.content()
+                self._parse_page(page_source)
+                page.close()
                 browser.close()
         except Exception as e:
             logging.error(f"An error occurred during scraping: {e}")
         logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
 
-    def _scrape_page(self, browser: Browser, url: str) -> None:
+    def _parse_page(self, page_content: str) -> None:
         """
         Scrapes a single page.
 
@@ -85,14 +90,8 @@ class WebScraper:
             browser (Browser): The Playwright browser instance.
             url (str): The URL of the page to scrape.
         """
-        logging.info(f"Scraping page: {url}")
-        page = browser.new_page()
-        page.goto(url)
-        time.sleep(ScraperConfig.page_load_sleep)
-        page_source = page.content()
-        readable_text = self.parser(page_source)
+        readable_text = self.parser(page_content)
         if readable_text:
             self.documents.append(readable_text)
         else:
-            logging.warning(f"No readable text found at {url}")
-        page.close()
+            logging.warning(f"No readable text found at {self.base_url}")

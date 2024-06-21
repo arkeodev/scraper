@@ -127,7 +127,6 @@ def install_playwright_chromium() -> None:
         subprocess.check_call([sys.executable, "-m", "pip", "install", "playwright"])
         logging.info("Playwright installed successfully.")
 
-    logging.info("Installing Playwright Chromium browser...")
     try:
         subprocess.run(
             [sys.executable, "-m", "playwright", "install", "chromium"], check=True

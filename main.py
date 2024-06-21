@@ -2,7 +2,6 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from scraper.logging import setup_logging
-from scraper.utils import install_playwright_chromium
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
 
 
@@ -24,7 +23,6 @@ def main():
         QAInterface.display()
 
     setup_logging()
-    install_playwright_chromium()
 
 
 def initialize_session_state():
@@ -58,7 +56,7 @@ def clear_state():
     st.cache_data.clear()
     st.session_state.refresh_triggered = False  # Reset the refresh trigger flag
     st.session_state.error_mes = ""  # Reset error message
-    st.experimental_rerun()
+    st.rerun()
 
 
 if __name__ == "__main__":

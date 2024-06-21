@@ -6,7 +6,7 @@ import streamlit as st
 from scraper.config import embedding_models_dict
 from scraper.qa import QuestionAnswering
 from scraper.scraper import WebScraper
-from scraper.utils import is_valid_url, url_exists
+from scraper.utils import install_playwright_chromium, is_valid_url, url_exists
 
 
 def start_scraping(running_placeholder: st.empty):
@@ -21,6 +21,7 @@ def start_scraping(running_placeholder: st.empty):
     embedding_model_name = embedding_models_dict[st.session_state.language]
 
     try:
+        install_playwright_chromium()
         qa_instance = scrape_and_process(st.session_state.url, embedding_model_name)
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
