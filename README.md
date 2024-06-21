@@ -1,6 +1,6 @@
 # Scraper Project
 
-Welcome to the Scraper Project! This repository contains the code for a web scraping and Q&A application that leverages large language models (LLMs) and embedding APIs to scrape websites, index data via a vector indexing, and answer user queries.
+Welcome to the Scraper Project! This repository contains the code for a web scraping and Q&A application that leverages large language models (LLMs).
 
 ## Table of Contents
 - [Overview](#overview)
