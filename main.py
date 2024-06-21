@@ -1,5 +1,4 @@
 import streamlit as st
-from dotenv import load_dotenv
 
 from scraper.logging import setup_logging
 from ui.components import ConfigurationUI, QAInterface, ScrapingUI
