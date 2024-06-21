@@ -1,4 +1,7 @@
-# ui/components.py
+"""
+User interface components
+"""
+
 import streamlit as st
 
 from scraper.main import start_scraping, trigger_refresh
@@ -8,7 +11,7 @@ class ConfigurationUI:
     """Class to handle the display of the sidebar configuration."""
 
     @staticmethod
-    def display():
+    def display() -> None:
         """Display configuration options for the scraper."""
         st.header("Configuration")
         st.session_state.language = st.selectbox(
@@ -25,7 +28,7 @@ class ScrapingUI:
     """Class to handle the display and functionality of the scraping task."""
 
     @staticmethod
-    def display():
+    def display() -> None:
         st.header("AI-Powered Web Scraping")
         url = st.text_input(
             "Enter the URL of the website to scrape:",
@@ -49,13 +52,16 @@ class QAInterface:
     """Class to handle the display and functionality of the QA interface."""
 
     @staticmethod
-    def display():
+    def display() -> None:
         """Displays the QA interface for user interaction."""
         if st.session_state.scraping_done:
             chat_history_container = st.container(height=620, border=False)
             with chat_history_container:
                 for role, content in st.session_state.chat_history:
-                    st.chat_message(role).write(content)
+                    st.markdown(
+                        f"<div class='chat-message-{role}'>{content}</div>",
+                        unsafe_allow_html=True,
+                    )
 
             chat_input_container = st.container(height=80, border=False)
             with chat_input_container:

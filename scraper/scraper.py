@@ -12,8 +12,8 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from scraper.config import ScraperConfig
-from scraper.errors import BrowserLaunchError, PageScrapingError
-from scraper.robots import RobotsTxtChecker, RobotsTxtError
+from scraper.errors import BrowserLaunchError, PageScrapingError, RobotsTxtError
+from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
 
@@ -57,9 +57,14 @@ class WebScraper:
         """
         try:
             logging.info("Starting scraping process")
-            if not self._check_robots():
-                logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
-                return []
+            try:
+                if not self._check_robots():
+                    logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
+                    return []
+            except RobotsTxtError as e:
+                logging.warning(
+                    f"Proceeding with scraping despite robots.txt error: {e}"
+                )
 
             browser = self._setup_browser()
             logging.info(f"Scraping page: {self.base_url}")

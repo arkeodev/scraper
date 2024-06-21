@@ -25,15 +25,9 @@ class RobotsTxtChecker:
             base_url (str): The base URL of the website.
             requester (Optional[requests.Session]): An optional requests session for making HTTP requests.
         """
-        self.requester = (
-            requester or requests.Session()
-        )  # Use the provided requester or create a new requests session.
-        self.rules: Dict[
-            str, List[str]
-        ] = {}  # Initialize an empty dictionary to store robots.txt rules.
-        self.robots_url = self._create_robots_url(
-            base_url
-        )  # Construct the URL for the robots.txt file.
+        self.requester = requester or requests.Session()
+        self.rules: Dict[str, List[str]] = {}
+        self.robots_url = self._create_robots_url(base_url)
 
     def _create_robots_url(self, base_url: str) -> str:
         """
@@ -46,24 +40,21 @@ class RobotsTxtChecker:
             str: The URL for the robots.txt file.
         """
         parsed_url = urlparse(base_url)
-        scheme = parsed_url.scheme  # Extract the scheme (http or https).
-        netloc = parsed_url.netloc  # Extract the network location.
+        scheme = parsed_url.scheme
+        netloc = parsed_url.netloc
         return f"{scheme}://{netloc}/robots.txt"
 
-    @safe_run
     def fetch(self) -> None:
         """
         Fetches and parses the robots.txt file.
         """
         try:
-            response = self.requester.get(
-                self.robots_url
-            )  # Send a GET request to fetch the robots.txt file.
+            response = self.requester.get(self.robots_url)
             response.raise_for_status()
-            self._parse(response.text)  # Parse the content of the robots.txt file.
+            self._parse(response.text)
             logging.info("robots.txt fetched and parsed successfully.")
         except requests.RequestException as e:
-            if e.response and e.response.status_code == 404:
+            if e.response is not None and e.response.status_code == 404:
                 logging.warning(
                     f"robots.txt not found at {self.robots_url}, proceeding without it."
                 )
@@ -91,8 +82,8 @@ class RobotsTxtChecker:
                 logging.info(
                     f"Access to {path} disallowed for {user_agent} by robots.txt."
                 )
-                return False  # Access is disallowed if the path matches any disallowed paths.
-        return True  # Allow access if no disallowed paths match.
+                return False
+        return True
 
     def _parse(self, content: str) -> None:
         """
@@ -105,17 +96,9 @@ class RobotsTxtChecker:
         for line in content.splitlines():
             line = line.strip()
             if line.startswith("User-agent:"):
-                current_user_agent = line.split(":")[
-                    1
-                ].strip()  # Extract the user agent from the line.
-                self.rules[
-                    current_user_agent
-                ] = []  # Initialize a list for disallowed paths.
+                current_user_agent = line.split(":")[1].strip()
+                self.rules[current_user_agent] = []
             elif line.startswith("Disallow:") and current_user_agent is not None:
-                disallow_path = line.split(":")[
-                    1
-                ].strip()  # Extract the disallowed path from the line.
-                self.rules[current_user_agent].append(
-                    disallow_path
-                )  # Add the disallowed path to the rules.
+                disallow_path = line.split(":")[1].strip()
+                self.rules[current_user_agent].append(disallow_path)
         logging.info("robots.txt rules parsed and stored.")
