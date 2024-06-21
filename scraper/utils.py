@@ -3,12 +3,15 @@ Utility functions for text extraction, URL validation, and prompt template gener
 """
 
 import logging
+import os
 import subprocess
 import sys
 
 import requests
 import trafilatura
 from readability import Document
+
+from subprocess import CalledProcessError
 
 from scraper.errors import BrowserLaunchError
 
@@ -132,9 +135,19 @@ def install_playwright_chromium() -> None:
             [sys.executable, "-m", "playwright", "install", "chromium"], check=True
         )
         logging.info("Playwright Chromium browser installed successfully.")
-        subprocess.run([sys.executable, "-m", "playwright", "install-deps"], check=True)
-        logging.info("Playwright Chromium browser dependencies installed successfully.")
-    except subprocess.CalledProcessError as e:
+
+        if os.geteuid() == 0:  # Check if the script is running as root
+            subprocess.run(
+                [sys.executable, "-m", "playwright", "install-deps"], check=True
+            )
+            logging.info(
+                "Playwright Chromium browser dependencies installed successfully."
+            )
+        else:
+            logging.warning(
+                "Skipping 'playwright install-deps' because the script is not running as root."
+            )
+    except CalledProcessError as e:
         logging.error(
             f"Failed to install Playwright Chromium and its dependencies: {e}"
         )
