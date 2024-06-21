@@ -16,6 +16,8 @@ from scraper.errors import BrowserLaunchError
 from scraper.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
+import streamlit as st
+
 
 class WebScraper:
     """
@@ -28,11 +30,12 @@ class WebScraper:
         robots_checker: Optional[RobotsTxtChecker] = None,
         parser: Optional[Callable] = None,
     ):
+        st.write(f"here1:")
         self.base_url = base_url
         self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
         self.parser = parser or extract_readable_text
         self.documents = []  # Use list to store documents
-        self.visited_urls = set()
+        st.write(f"here2:")
 
     def _setup_browser(self, playwright: Playwright) -> Browser:
         """
@@ -43,7 +46,10 @@ class WebScraper:
         """
         logging.info("Setting up Playwright Chromium Browser")
         try:
-            return playwright.chromium.launch(headless=True)
+            st.write(f"here3")
+            pr = playwright.chromium.launch(headless=True)
+            st.write(f"here4: {pr.browser_type}")
+            return pr
         except PlaywrightError as e:
             logging.error(f"An error occurred while launching the browser: {e}")
             raise BrowserLaunchError("Failed to launch the Playwright browser")
