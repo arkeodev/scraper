@@ -119,11 +119,11 @@ def install_playwright_chromium() -> None:
     """
 
     try:
-        os.system("playwright install")
+        os.system("playwright install chromium")
         logging.info("Playwright Chromium browser installed successfully.")
         os.system("playwright install-deps")
         logging.info("Playwright Chromium browser dependencies installed successfully.")
-    except CalledProcessError as e:
+    except Exception as e:
         logging.error(
             f"Failed to install Playwright Chromium and its dependencies: {e}"
         )
