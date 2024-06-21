@@ -8,6 +8,7 @@ from urllib.parse import urlparse
 
 import requests
 
+from scraper.errors import RobotsTxtError
 from scraper.logging import safe_run
 
 
@@ -38,15 +39,16 @@ class RobotsTxtChecker:
         """
         Creates the URL for the robots.txt file based on the base URL.
 
+        Args:
+            base_url (str): The base URL of the website.
+
         Returns:
             str: The URL for the robots.txt file.
         """
-        netloc = urlparse(
-            base_url
-        ).netloc  # Parse the base URL to extract the network location.
-        return (
-            f"http://{netloc}/robots.txt"  # Construct the URL for the robots.txt file.
-        )
+        parsed_url = urlparse(base_url)
+        scheme = parsed_url.scheme  # Extract the scheme (http or https).
+        netloc = parsed_url.netloc  # Extract the network location.
+        return f"{scheme}://{netloc}/robots.txt"
 
     @safe_run
     def fetch(self) -> None:
@@ -61,13 +63,13 @@ class RobotsTxtChecker:
             self._parse(response.text)  # Parse the content of the robots.txt file.
             logging.info("robots.txt fetched and parsed successfully.")
         except requests.RequestException as e:
-            if e.response.status_code == 404:
+            if e.response and e.response.status_code == 404:
                 logging.warning(
                     f"robots.txt not found at {self.robots_url}, proceeding without it."
                 )
             else:
                 logging.error(f"Failed to fetch robots.txt from {self.robots_url}: {e}")
-                raise ConnectionError(f"Error fetching robots.txt: {e}")
+                raise RobotsTxtError(f"Error fetching robots.txt: {e}")
         finally:
             self.requester.close()
 
