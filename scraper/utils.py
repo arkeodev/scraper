@@ -136,17 +136,10 @@ def install_playwright_chromium() -> None:
         )
         logging.info("Playwright Chromium browser installed successfully.")
 
-        if os.geteuid() == 0:  # Check if the script is running as root
-            subprocess.run(
-                [sys.executable, "-m", "playwright", "install-deps"], check=True
-            )
-            logging.info(
-                "Playwright Chromium browser dependencies installed successfully."
-            )
-        else:
-            logging.warning(
-                "Skipping 'playwright install-deps' because the script is not running as root."
-            )
+        subprocess.run(
+            ["sudo", sys.executable, "-m", "playwright", "install-deps"], check=True
+        )
+        logging.info("Playwright Chromium browser dependencies installed successfully.")
     except CalledProcessError as e:
         logging.error(
             f"Failed to install Playwright Chromium and its dependencies: {e}"
