@@ -12,7 +12,7 @@ from scraper.ui_components import ConfigurationUI, QAInterface, ScrapingUI
 def main():
     """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")
-    st.title("🕸️ Scrape Smart 🧠")
+    st.title("🕸️ Scrape Smart")
 
     # Inject custom CSS
     inject_custom_css()
