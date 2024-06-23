@@ -22,6 +22,7 @@ def start_scraping() -> None:
     """Starts the scraping task with improved structure and error handling."""
     url = st.session_state.get("url")
     openai_key = st.session_state.get("openai_key")
+    model_name_key = st.session_state.get("model_name_key")
 
     if not url:
         set_error("URL cannot be empty. Please enter a valid URL.")
@@ -37,12 +38,14 @@ def start_scraping() -> None:
         return
 
     embedding_model_name = embedding_models_dict[
-        st.session_state.get("language", "default_language")
+        st.session_state.get("language_key", "english")
     ]
 
     try:
         install_playwright_chromium()
-        qa_instance = scrape_and_process(url, embedding_model_name, openai_key)
+        qa_instance = scrape_and_process(
+            url, embedding_model_name, openai_key, model_name_key
+        )
         st.session_state.update(
             {
                 "qa": qa_instance,
@@ -62,7 +65,7 @@ def start_scraping() -> None:
 
 
 def scrape_and_process(
-    url: str, embedding_model_name: str, open_ai_key: str
+    url: str, embedding_model_name: str, open_ai_key: str, model_name_key: str
 ) -> QuestionAnswering:
     """Scrapes the given URL and processes the documents for question answering."""
     logging.info(f"Scraping URL: {url}")
@@ -75,7 +78,9 @@ def scrape_and_process(
         raise PageScrapingError("Failed to scrape documents")
     logging.info(f"Scraped {len(documents)} documents")
 
-    qa_instance = QuestionAnswering(documents, embedding_model_name, open_ai_key)
+    qa_instance = QuestionAnswering(
+        documents, embedding_model_name, open_ai_key, model_name_key
+    )
     qa_instance.create_index()
     return qa_instance
 
@@ -91,6 +96,8 @@ def initialize_session_state() -> None:
     session_defaults = {
         "url": "",
         "chatbot_api_key": "",
+        "model_name_key": "gpt-3.5-turbo",
+        "language_key": "english",
         "status": [],
         "qa": None,
         "documents": [],
@@ -114,6 +121,7 @@ def clear_state() -> None:
     st.session_state.chatbot_api_key = ""
     st.session_state.question_input = ""
     st.session_state.chat_history = []
+    st.session_state.model_name_key = "gpt-3.5-turbo"
     st.session_state.language_key = "english"
     st.session_state.scraping_done = False
     st.cache_data.clear()

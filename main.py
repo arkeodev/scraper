@@ -63,6 +63,14 @@ def display_config_ui() -> None:
         key="language_key",
         disabled=st.session_state.scraping_done,
     )
+    st.session_state.model_name = st.selectbox(
+        "Select the Model:",
+        options=("gpt-3.5-turbo", "gpt-4o", "gpt-4", "gpt-4-turbo"),
+        placeholder="Select model...",
+        index=0,
+        key="model_name_key",
+        disabled=st.session_state.scraping_done,
+    )
 
 
 def display_scraping_ui() -> None:
