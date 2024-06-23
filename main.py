@@ -67,14 +67,17 @@ def display_config_ui() -> None:
 
 def display_scraping_ui() -> None:
     """Display scraping interface."""
-    url = st.text_input(
+    st.session_state.url = st.text_input(
         "Enter the URL of the website to scrape:",
         key="url_input",
         placeholder="http://example.com",
     )
-    st.session_state.url = url
+    st.session_state.openai_key = st.text_input(
+        "OpenAI API Key", key="chatbot_api_key", type="password"
+    )
     if st.session_state.error_mes:
         st.error(f"{st.session_state.error_mes}")
+
     st.button(
         "Start",
         on_click=lambda: start_scraping(),
@@ -84,7 +87,7 @@ def display_scraping_ui() -> None:
 
 
 def handle_submit(user_input: str):
-    """Handle the submission of the chat input and clear the input field."""
+    """Handle the submission of the chat input."""
     with st.spinner("Fetching answer..."):
         answer = st.session_state.qa.query(user_input)
         st.session_state.chat_history.append(("assistant", answer))
