@@ -1,0 +1,73 @@
+/* Global settings */
+body {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #000000;
+}
+
+/* Apply to all headers */
+h1 {
+    font-size: 2.5em;
+    color: #333333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+h2 {
+    font-size: 2.0em;
+    color: #333333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+h3, h4, h5, h6 {
+    color: #333333;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+}
+
+/* Specific widget styles */
+.stTextInput, .stButton, .stSelectbox, .stTextArea, .stExpander, .stExpander > label {
+    font-size: 16px;
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #333333;
+}
+
+/* Container styles */
+.stContainer {
+    background-color: #FFFFFF;
+}
+
+/* Centering content inside containers */
+.stContainer > div {
+    display: flex;
+    justify-content: center;
+    width: 100%;
+}
+
+/* Centering images specifically inside containers */
+.stContainer img {
+    display: block;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* Centering markdown specifically inside containers */
+.stContainer .markdown-text-container {
+    width: 100%;
+    text-align: center;
+}
+
+
+/* Customize chat messages */
+.chat-message-user {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #333333;
+    font-size: 16px;
+    border-left: 3px solid #4CAF50;
+    padding-left: 10px;
+    margin-bottom: 10px;
+}
+
+.chat-message-assistant {
+    font-family: 'Helvetica Neue', Arial, sans-serif;
+    color: #333333;
+    font-size: 16px;
+    border-left: 3px solid #007BFF;
+    padding-left: 10px;
+    margin-bottom: 20px;
+}

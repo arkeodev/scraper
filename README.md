@@ -13,7 +13,7 @@ Welcome to the Scraper Project! This repository contains the code for a web scra
 - [License](#license)
 
 ## Overview
-The Scraper Project is a Streamlit app designed to facilitate web scraping, data storage, and question answering using LLMs for natural language processing and vector indexing. It employs a Retrieve and Generate (RAG) model, utilizing the powerful llama-index for vector storage and retrieval.
+The Scraper Project is a Streamlit app designed to facilitate web scraping, data storage, and question answering using LLMs for natural language processing and vector indexing. It employs a Retrieve and Generate (RAG) model, utilizing the powerful llama-index for vector indexing and retrieval.
 
 ## Key Features
 - **Easy-to-Use Interface**: Provides a simple and intuitive interface for inputting URLs and asking questions.
