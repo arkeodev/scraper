@@ -13,29 +13,52 @@ from scraper.scraper import WebScraper
 from scraper.utils import install_playwright_chromium, is_valid_url, url_exists
 
 
+def set_error(message: str) -> None:
+    """Helper function to set the session state error message."""
+    st.session_state.error_mes = message
+
+
 def start_scraping() -> None:
-    """Starts the scraping task."""
-    if not st.session_state.url:
-        st.session_state.error_mes = "URL cannot be empty. Please enter a valid URL."
+    """Starts the scraping task with improved structure and error handling."""
+    url = st.session_state.get("url")
+    openai_key = st.session_state.get("openai_key")
+
+    if not url:
+        set_error("URL cannot be empty. Please enter a valid URL.")
+        return
+    if not is_valid_url(url):
+        set_error("Invalid URL format")
+        return
+    if not url_exists(url):
+        set_error("The URL does not exist")
+        return
+    if not openai_key:
+        set_error("Please add your OpenAI API key to continue.")
         return
 
-    embedding_model_name = embedding_models_dict[st.session_state.language]
+    embedding_model_name = embedding_models_dict[
+        st.session_state.get("language", "default_language")
+    ]
 
     try:
         install_playwright_chromium()
-        qa_instance = scrape_and_process(
-            st.session_state.url, embedding_model_name, st.session_state.openai_key
+        qa_instance = scrape_and_process(url, embedding_model_name, openai_key)
+        st.session_state.update(
+            {
+                "qa": qa_instance,
+                "documents": qa_instance.documents,
+                "scraping_done": True,
+                "error_mes": "",
+            }
         )
-        st.session_state.qa = qa_instance
-        st.session_state.documents = qa_instance.documents
-        st.session_state.scraping_done = True
-        st.session_state.error_mes = ""
     except ValueError as ve:
-        st.session_state.error_mes = f"An error occurred: {ve}"
+        set_error(f"An error occurred: {ve}")
         logging.error(f"An error occurred during scraping: {ve}")
     except Exception as e:
-        st.session_state.error_mes = f"An unexpected error occurred: {e}"
-        logging.error(f"An unexpected error occurred during scraping: {e}")
+        set_error(f"An unexpected error occurred: {e}")
+        logging.error(
+            f"An unexpected error occurred during scraping: {e}", exc_info=True
+        )
 
 
 def scrape_and_process(
@@ -45,21 +68,11 @@ def scrape_and_process(
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {embedding_model_name}")
 
-    if not is_valid_url(url):
-        st.error("Invalid URL format")
-    if not url_exists(url):
-        st.error("The URL does not exist")
-    if not open_ai_key:
-        st.info("Please add your OpenAI API key to continue.")
-        st.stop()
-
     scraper = WebScraper(url)
     documents = scraper.scrape()
-
     if not documents:
         logging.error("Scraper returned None for documents")
         raise PageScrapingError("Failed to scrape documents")
-
     logging.info(f"Scraped {len(documents)} documents")
 
     qa_instance = QuestionAnswering(documents, embedding_model_name, open_ai_key)
