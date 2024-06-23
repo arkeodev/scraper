@@ -83,15 +83,12 @@ def display_scraping_ui() -> None:
     st.button("Refresh", on_click=trigger_refresh)
 
 
-def display_qa_ui() -> None:
-    """Displays the QA interface for user interaction."""
-    if st.session_state.scraping_done:
-        chat_input = st.text_input("Please ask your questions", key="question_input")
-        if chat_input:
-            with st.spinner("Fetching answer..."):
-                answer = st.session_state.qa.query(chat_input)
-                st.session_state.chat_history.append(("assistant", answer))
-                st.session_state.chat_history.append(("user", chat_input))
+def handle_submit(user_input: str):
+    """Handle the submission of the chat input and clear the input field."""
+    with st.spinner("Fetching answer..."):
+        answer = st.session_state.qa.query(user_input)
+        st.session_state.chat_history.append(("assistant", answer))
+        st.session_state.chat_history.append(("user", user_input))
 
         # Reverse the list to display the latest message first
         reversed_chat_history = reversed(st.session_state.chat_history)
@@ -100,7 +97,15 @@ def display_qa_ui() -> None:
                 f"<div class='chat-message-{role}'>{content}</div>",
                 unsafe_allow_html=True,
             )
-            st.markdown(" ")
+        st.markdown(" ")
+
+
+def display_qa_ui() -> None:
+    """Displays the QA interface for user interaction."""
+    if st.session_state.scraping_done:
+        user_input = st.chat_input("Please ask your questions", key="question_input")
+        if user_input:
+            handle_submit(user_input)
 
 
 def load_css():
