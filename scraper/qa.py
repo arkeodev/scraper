@@ -21,7 +21,13 @@ class QuestionAnswering:
     """
 
     def __init__(
-        self, documents: List[str], embedding_model_name: str, open_ai_key: str
+        self,
+        documents: List[str],
+        embedding_model_name: str,
+        open_ai_key: str,
+        model_name: str = "gpt-3.5-turbo",
+        embedding_model=None,
+        llm_model=None,
     ):
         """
         Initializes the QuestionAnswering instance with a list of documents.
@@ -30,24 +36,21 @@ class QuestionAnswering:
             documents (List[str]): A list of documents as strings.
             embedding_model_name: Embedding model name.
             open_ai_key: Open AI key for generation.
+            model: LLM model.
         """
         self.documents = [Document(text=text) for text in documents]
-        self.embedding_model_name = embedding_model_name
+        self.embed_model = embedding_model or HuggingFaceEmbedding(
+            model_name=embedding_model_name
+        )
         self.open_ai_key = open_ai_key
         self.conversation_history = []
-        self.llm = None
+        self.llm = llm_model or OpenAI(model=model_name, api_key=self.open_ai_key)
 
     def create_index(self):
         """
         Creates the index from the documents.
         """
         try:
-            self.embed_model = HuggingFaceEmbedding(
-                model_name=self.embedding_model_name
-            )
-
-            self.llm = OpenAI(model="gpt-3.5-turbo", api_key=self.open_ai_key)
-
             # Attempt to create a vector index from the nodes
             logging.info("Creating vector index...")
             vector_index = VectorStoreIndex.from_documents(
