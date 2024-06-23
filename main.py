@@ -2,8 +2,6 @@
 Main application
 """
 
-import base64
-
 import streamlit as st
 
 from scraper.app import (
@@ -29,17 +27,11 @@ def main():
     left_column, _, right_column = st.columns([1, 0.1, 2.6])
 
     with left_column:
-        # Use a container to wrap the image for specific styling
-        container = st.container()
-        container.markdown("<h1>m o l e</h1>", unsafe_allow_html=True)
-        container.image("scraper/images/mole.png")
-        container.markdown("<h2>AI powered web scraping</h2>", unsafe_allow_html=True)
-
+        display_title()
         display_scraping_ui()
         with st.expander("Configuration", expanded=True):
             display_config_ui()
-        # Add a space and then the GitHub link at the bottom
-        st.markdown(" ")  # This adds a bit of space
+        st.markdown(" ")
         # Add styled GitHub link at the bottom
         st.markdown(
             "<a class='github-link' href='https://github.com/arkeodev/scraper' target='_blank'>"
@@ -51,6 +43,14 @@ def main():
         display_qa_ui()
 
     setup_logging()
+
+
+def display_title() -> None:
+    """Display title and image."""
+    # Use a container to wrap the image for specific styling
+    st.markdown("<h1>m o l e</h1>", unsafe_allow_html=True)
+    st.image("scraper/images/mole.png")
+    st.markdown("<h2>AI powered web scraping</h2>", unsafe_allow_html=True)
 
 
 def display_config_ui() -> None:
@@ -73,10 +73,13 @@ def display_scraping_ui() -> None:
         placeholder="http://example.com",
     )
     st.session_state.url = url
-    running_placeholder = st.empty()
     if st.session_state.error_mes:
         st.error(f"{st.session_state.error_mes}")
-    st.button("Start", on_click=lambda: start_scraping(running_placeholder))
+    st.button(
+        "Start",
+        on_click=lambda: start_scraping(),
+        disabled=st.session_state.scraping_done,
+    )
     st.button("Refresh", on_click=trigger_refresh)
 
 
