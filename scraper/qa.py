@@ -20,15 +20,20 @@ class QuestionAnswering:
     Handles the question-answering functionality using LlamaIndex and a vector store for retrieval.
     """
 
-    def __init__(self, documents: List[str], embedding_model_name: str):
+    def __init__(
+        self, documents: List[str], embedding_model_name: str, open_ai_key: str
+    ):
         """
         Initializes the QuestionAnswering instance with a list of documents.
 
         Args:
             documents (List[str]): A list of documents as strings.
+            embedding_model_name: Embedding model name.
+            open_ai_key: Open AI key for generation.
         """
         self.documents = [Document(text=text) for text in documents]
         self.embedding_model_name = embedding_model_name
+        self.open_ai_key = open_ai_key
         self.conversation_history = []
         self.llm = None
 
@@ -41,7 +46,7 @@ class QuestionAnswering:
                 model_name=self.embedding_model_name
             )
 
-            self.llm = OpenAI(model="gpt-3.5-turbo")
+            self.llm = OpenAI(model="gpt-3.5-turbo", api_key=self.open_ai_key)
 
             # Attempt to create a vector index from the nodes
             logging.info("Creating vector index...")
@@ -58,12 +63,12 @@ class QuestionAnswering:
 
             logging.info("Setting up list query engines...")
             list_query_engine = list_index.as_query_engine(
-                response_mode="tree_summarize", use_async=True
+                response_mode="tree_summarize", use_async=True, llm=self.llm
             )
 
             logging.info("Setting up vector tool...")
             vector_tool = QueryEngineTool.from_defaults(
-                query_engine=vector_index.as_chat_engine(),
+                query_engine=vector_index.as_chat_engine(llm=self.llm),
                 description="Retrieves specific content from documents.",
             )
 
@@ -76,8 +81,9 @@ class QuestionAnswering:
             # Combining tools into a router query engine
             logging.info("Combining tools into router query engine...")
             self.query_engine = RouterQueryEngine(
-                selector=LLMSingleSelector.from_defaults(),
+                selector=LLMSingleSelector.from_defaults(llm=self.llm),
                 query_engine_tools=[list_tool, vector_tool],
+                llm=self.llm,
             )
 
             logging.info("Index created successfully.")

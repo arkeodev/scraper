@@ -23,7 +23,9 @@ def start_scraping() -> None:
 
     try:
         install_playwright_chromium()
-        qa_instance = scrape_and_process(st.session_state.url, embedding_model_name)
+        qa_instance = scrape_and_process(
+            st.session_state.url, embedding_model_name, st.session_state.openai_key
+        )
         st.session_state.qa = qa_instance
         st.session_state.documents = qa_instance.documents
         st.session_state.scraping_done = True
@@ -36,15 +38,20 @@ def start_scraping() -> None:
         logging.error(f"An unexpected error occurred during scraping: {e}")
 
 
-def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering:
+def scrape_and_process(
+    url: str, embedding_model_name: str, open_ai_key: str
+) -> QuestionAnswering:
     """Scrapes the given URL and processes the documents for question answering."""
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {embedding_model_name}")
 
     if not is_valid_url(url):
-        raise PageScrapingError("Invalid URL format")
+        st.error("Invalid URL format")
     if not url_exists(url):
-        raise PageScrapingError("The URL does not exist")
+        st.error("The URL does not exist")
+    if not open_ai_key:
+        st.info("Please add your OpenAI API key to continue.")
+        st.stop()
 
     scraper = WebScraper(url)
     documents = scraper.scrape()
@@ -55,7 +62,7 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
 
     logging.info(f"Scraped {len(documents)} documents")
 
-    qa_instance = QuestionAnswering(documents, embedding_model_name)
+    qa_instance = QuestionAnswering(documents, embedding_model_name, open_ai_key)
     qa_instance.create_index()
     return qa_instance
 
@@ -70,6 +77,7 @@ def initialize_session_state() -> None:
     """Initialize session state variables if not already set."""
     session_defaults = {
         "url": "",
+        "chatbot_api_key": "",
         "status": [],
         "qa": None,
         "documents": [],
@@ -90,6 +98,7 @@ def clear_state() -> None:
         del st.session_state[key]
     st.session_state.status = []
     st.session_state.url_input = ""
+    st.session_state.chatbot_api_key = ""
     st.session_state.question_input = ""
     st.session_state.chat_history = []
     st.session_state.language_key = "english"
