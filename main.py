@@ -2,16 +2,17 @@
 Main application
 """
 
-import streamlit as st
 import base64
 
-from scraper.logging import setup_logging
+import streamlit as st
+
 from scraper.app import (
     clear_state,
     initialize_session_state,
     start_scraping,
     trigger_refresh,
 )
+from scraper.logging import setup_logging
 
 
 def main():
