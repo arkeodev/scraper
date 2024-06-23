@@ -19,18 +19,6 @@ class ScraperConfig:
     page_load_sleep: int = 5
 
 
-@dataclass
-class QAConfig:
-    """
-    Configuration for the question-answering settings.
-
-    Attributes:
-        top_n_chunks (int): The number of top chunks to consider for question answering.
-    """
-
-    top_n_chunks: int = 5
-
-
 # Matches the embedding model names with the language
 embedding_models_dict = {
     "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",

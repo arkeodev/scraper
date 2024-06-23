@@ -1,6 +1,6 @@
-# Scraper Project
+# mole
 
-Welcome to the Scraper Project! This repository contains the code for a web scraping and Q&A application that leverages large language models (LLMs).
+Welcome to the mole! mole is an application for a web scraping and Q&A application that leverages large language models (LLMs).
 
 ## Table of Contents
 - [Overview](#overview)
@@ -13,7 +13,7 @@ Welcome to the Scraper Project! This repository contains the code for a web scra
 - [License](#license)
 
 ## Overview
-The Scraper Project is a Streamlit app designed to facilitate web scraping, data storage, and question answering using LLMs for natural language processing and vector indexing. It employs a Retrieve and Generate (RAG) model, utilizing the powerful llama-index for vector storage and retrieval.
+mole is a Streamlit app designed to facilitate web scraping, data storage, and question answering using LLMs for natural language processing and vector indexing. It employs a Retrieve and Generate (RAG) model, utilizing the powerful llama-index for vector indexing and retrieval.
 
 ## Key Features
 - **Easy-to-Use Interface**: Provides a simple and intuitive interface for inputting URLs and asking questions.
@@ -25,7 +25,7 @@ The Scraper Project is a Streamlit app designed to facilitate web scraping, data
 The application is hosted at [https://scraper-web.streamlit.app/](https://scraper-web.streamlit.app/).
 
 ## Run from Local
-To run the Scraper Project locally, follow these steps:
+To run the mole locally, follow these steps:
 
 1. **Create a virtual Python environment**:
     ```bash
@@ -51,7 +51,7 @@ To run the Scraper Project locally, follow these steps:
     ```
 
 ## Usage
-To use the Scraper Project, follow these steps:
+To use the mole, follow these steps:
 
 1. **Run the Streamlit application**:
     ```bash
@@ -76,7 +76,7 @@ This project primarily uses the following Python packages:
 - **llama-index**: For the RAG implementation, handling vector indexing and retrieval.
 
 ## Contributing
-We welcome contributions to the Scraper Project! To contribute, follow these steps:
+We welcome contributions to the mole! To contribute, follow these steps:
 
 1. **Fork the repository**.
 2. **Create a new branch**:

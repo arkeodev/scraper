@@ -7,17 +7,14 @@ import logging
 import streamlit as st
 
 from scraper.config import embedding_models_dict
-from scraper.errors import CreateIndexError, QueryError
+from scraper.errors import PageScrapingError
 from scraper.qa import QuestionAnswering
 from scraper.scraper import WebScraper
 from scraper.utils import install_playwright_chromium, is_valid_url, url_exists
 
 
-def start_scraping(running_placeholder: st.empty) -> None:
+def start_scraping() -> None:
     """Starts the scraping task."""
-    with running_placeholder:
-        st.text("Running...")
-
     if not st.session_state.url:
         st.session_state.error_mes = "URL cannot be empty. Please enter a valid URL."
         return
@@ -45,16 +42,16 @@ def scrape_and_process(url: str, embedding_model_name: str) -> QuestionAnswering
     logging.info(f"Using embedding model: {embedding_model_name}")
 
     if not is_valid_url(url):
-        raise ValueError("Invalid URL format")
+        raise PageScrapingError("Invalid URL format")
     if not url_exists(url):
-        raise ValueError("The URL does not exist")
+        raise PageScrapingError("The URL does not exist")
 
     scraper = WebScraper(url)
     documents = scraper.scrape()
 
     if not documents:
         logging.error("Scraper returned None for documents")
-        raise ValueError("Failed to scrape documents")
+        raise PageScrapingError("Failed to scrape documents")
 
     logging.info(f"Scraped {len(documents)} documents")
 
@@ -93,7 +90,7 @@ def clear_state() -> None:
         del st.session_state[key]
     st.session_state.status = []
     st.session_state.url_input = ""
-    st.session_state.question_input = None
+    st.session_state.question_input = ""
     st.session_state.chat_history = []
     st.session_state.language_key = "english"
     st.session_state.scraping_done = False

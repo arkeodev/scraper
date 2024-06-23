@@ -4,18 +4,21 @@ Main application
 
 import streamlit as st
 
+from scraper.app import (
+    clear_state,
+    initialize_session_state,
+    start_scraping,
+    trigger_refresh,
+)
 from scraper.logging import setup_logging
-from scraper.main import clear_state, initialize_session_state
-from scraper.ui_components import ConfigurationUI, QAInterface, ScrapingUI
 
 
 def main():
     """Main function to set up the Streamlit interface and session state."""
     st.set_page_config(layout="wide")
-    st.title("🕸️ Scrape Smart")
 
-    # Inject custom CSS
-    inject_custom_css()
+    # Load CSS styles
+    load_css()
 
     # Initialize session state variables
     initialize_session_state()
@@ -24,10 +27,11 @@ def main():
     left_column, _, right_column = st.columns([1, 0.1, 2.6])
 
     with left_column:
-        ScrapingUI.display()
-        ConfigurationUI.display()
-        # Add a space and then the GitHub link at the bottom
-        st.write("")  # This adds a bit of space
+        display_title()
+        display_scraping_ui()
+        with st.expander("Configuration", expanded=True):
+            display_config_ui()
+        st.markdown(" ")
         # Add styled GitHub link at the bottom
         st.markdown(
             "<a class='github-link' href='https://github.com/arkeodev/scraper' target='_blank'>"
@@ -36,99 +40,79 @@ def main():
         )
 
     with right_column:
-        QAInterface.display()
+        display_qa_ui()
 
     setup_logging()
 
 
-def inject_custom_css():
-    """Inject custom CSS to style the Streamlit app."""
-    st.markdown(
-        """
-        <style>
-            /* Global settings */
-            body {
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-                color: #000000;
-            }
+def display_title() -> None:
+    """Display title and image."""
+    # Use a container to wrap the image for specific styling
+    st.markdown("<h1>m o l e</h1>", unsafe_allow_html=True)
+    st.image("scraper/images/mole.png")
+    st.markdown("<h2>AI powered web scraping</h2>", unsafe_allow_html=True)
 
-            /* Apply to all headers */
-            h1 {
-                font-size: 2.5em;
-                color: #333333;
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-            }
-            h2 {
-                font-size: 2.0em;
-                color: #333333;
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-            }
-            h3, h4, h5, h6 {
-                color: #333333;
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-            }
 
-            /* Specific widget styles */
-            .stTextInput, .stButton, .stSelectbox, .stTextArea, .stSlider {
-                font-size: 16px;
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-                color: #333333;
-            }
-
-            /* Container styles */
-            .stContainer {
-                background-color: #FFFFFF;
-            }
-
-            /* Customize chat messages */
-            .chat-message-user {
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-                color: #333333;
-                font-size: 16px;
-                border-left: 3px solid #4CAF50;
-                padding-left: 10px;
-                margin-bottom: 10px;
-            }
-
-            .chat-message-assistant {
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-                color: #333333;
-                font-size: 16px;
-                border-left: 3px solid #007BFF;
-                padding-left: 10px;
-                margin-bottom: 10px;
-            }
-
-            /* Link styles */
-            .github-link {
-                font-family: 'Helvetica Neue', Arial, sans-serif;
-                font-size: 16px;
-                color: #333333;
-                text-decoration: none;
-                border: none;
-                background-color: transparent;
-                cursor: pointer;
-                display: flex;
-                align-items: center;
-                padding: 10px 0;
-            }
-
-            .github-link:hover {
-                text-decoration: underline;
-            }
-
-            .github-icon {
-                display: inline-block;
-                background-image: url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iOTgiIGhlaWdodD0iOTYiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHBhdGggZmlsbC1ydWxlPSJldmVub2RkIiBjbGlwLXJ1bGU9ImV2ZW5vZGQiIGQ9Ik00OC44NTQgMEMyMS44MzkgMCAwIDIyIDAgNDkuMjE3YzAgMjEuNzU2IDEzLjk5MyA0MC4xNzIgMzMuNDA1IDQ2LjY5IDIuNDI3LjQ5IDMuMzE2LTEuMDU5IDMuMzE2LTIuMzYyIDAtMS4xNDEtLjA4LTUuMDUyLS4wOC05LjEyNy0xMy41OSAyLjkzNC0xNi40Mi01Ljg2Ny0xNi40Mi01Ljg2Ny0yLjE4NC01LjcwNC01LjQyLTcuMTctNS40Mi03LjE3LTQuNDQ4LTMuMDE1LjMyNC0zLjAxNS4zMjQtMy4wMTUgNC45MzQuMzI2IDcuNTIzIDUuMDUyIDcuNTIzIDUuMDUyIDQuMzY3IDcuNDk2IDExLjQwNCA1LjM3OCAxNC4yMzUgNC4wNzQuNDA0LTMuMTc4IDEuNjk5LTUuMzc4IDMuMDc0LTYuNi0xMC44MzktMS4xNDEtMjIuMjQzLTUuMzc4LTIyLjI0My0yNC4yODMgMC01LjM3OCAxLjk0LTkuNzc4IDUuMDE0LTEzLjItLjQ4NS0xLjIyMi0yLjE4NC02LjI3NS40ODYtMTMuMDM4IDAgMCA0LjEyNS0xLjMwNCAxMy40MjYgNS4wNTJhNDYuOTcgNDYuOTcgMCAwIDEgMTIuMjE0LTEuNjNjNC4xMjUgMCA4LjMzLjU3MSAxMi4yMTMgMS42MyA5LjMwMi02LjM1NiAxMy40MjctNS4wNTIgMTMuNDI3LTUuMDUyIDIuNjcgNi43NjMuOTcgMTEuODE2LjQ4NSAxMy4wMzggMy4xNTUgMy40MjIgNS4wMTUgNy44MjIgNS4wMTUgMTMuMiAwIDE4LjkwNS0xMS40MDQgMjMuMDYtMjIuMzI0IDI0LjI4MyAxLjc4IDEuNTQ4IDMuMzE2IDQuNDgxIDMuMzE2IDkuMTI2IDAgNi42LS4wOCAxMS44OTctLjA4IDEzLjUyNiAwIDEuMzA0Ljg5IDIuODUzIDMuMzE2IDIuMzY0IDE5LjQxMi02LjUyIDMzLjQwNS0yNC45MzUgMzMuNDA1LTQ2LjY5MUM5Ny43MDcgMjIgNzUuNzg4IDAgNDguODU0IDB6IiBmaWxsPSIjMjQyOTJmIi8+PC9zdmc+');
-                background-size: contain;
-                width: 20px;
-                height: 20px;
-                margin-right: 5px;
-            }
-        </style>
-    """,
-        unsafe_allow_html=True,
+def display_config_ui() -> None:
+    """Display configuration options for the scraper."""
+    st.session_state.language = st.selectbox(
+        "Select the Language of the Web Site:",
+        options=("english", "turkish"),
+        placeholder="Select language...",
+        index=0,
+        key="language_key",
+        disabled=st.session_state.scraping_done,
     )
+
+
+def display_scraping_ui() -> None:
+    """Display scraping interface."""
+    url = st.text_input(
+        "Enter the URL of the website to scrape:",
+        key="url_input",
+        placeholder="http://example.com",
+    )
+    st.session_state.url = url
+    if st.session_state.error_mes:
+        st.error(f"{st.session_state.error_mes}")
+    st.button(
+        "Start",
+        on_click=lambda: start_scraping(),
+        disabled=st.session_state.scraping_done,
+    )
+    st.button("Refresh", on_click=trigger_refresh)
+
+
+def handle_submit(user_input: str):
+    """Handle the submission of the chat input and clear the input field."""
+    with st.spinner("Fetching answer..."):
+        answer = st.session_state.qa.query(user_input)
+        st.session_state.chat_history.append(("assistant", answer))
+        st.session_state.chat_history.append(("user", user_input))
+
+        # Reverse the list to display the latest message first
+        reversed_chat_history = reversed(st.session_state.chat_history)
+        for role, content in reversed_chat_history:
+            st.markdown(
+                f"<div class='chat-message-{role}'>{content}</div>",
+                unsafe_allow_html=True,
+            )
+        st.markdown(" ")
+
+
+def display_qa_ui() -> None:
+    """Displays the QA interface for user interaction."""
+    if st.session_state.scraping_done:
+        user_input = st.chat_input("Please ask your questions", key="question_input")
+        if user_input:
+            handle_submit(user_input)
+
+
+def load_css():
+    """Load CSS styles from a css file."""
+    with open(".css/app_styles.css", "r") as f:
+        css = f.read()
+    st.markdown(f"<style>{css}</style>", unsafe_allow_html=True)
 
 
 if __name__ == "__main__":

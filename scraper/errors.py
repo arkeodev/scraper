@@ -3,37 +3,37 @@ Custom errors for the scraper.
 """
 
 
-class ScraperError(Exception):
+class BaseError(Exception):
     """Base class for scraper exceptions."""
 
     pass
 
 
-class BrowserLaunchError(ScraperError):
+class BrowserLaunchError(BaseError):
     """Raised when the browser fails to launch."""
 
     pass
 
 
-class PageScrapingError(ScraperError):
+class PageScrapingError(BaseError):
     """Raised when the page scraping fails."""
 
     pass
 
 
-class RobotsTxtError(ScraperError):
+class RobotsTxtError(BaseError):
     """Raised when there is an error with robots.txt handling."""
 
     pass
 
 
-class CreateIndexError(ScraperError):
+class CreateIndexError(BaseError):
     """Raised when there is an error with index creation."""
 
     pass
 
 
-class QueryError(ScraperError):
+class QueryError(BaseError):
     """Raised when there is an error with LLM query."""
 
     pass
