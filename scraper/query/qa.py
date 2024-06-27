@@ -12,39 +12,32 @@ from llama_index.core.tools.query_engine import QueryEngineTool
 from llama_index.embeddings.huggingface import HuggingFaceEmbedding
 from llama_index.llms.openai import OpenAI
 
+from scraper.config import LLMConfig
 from scraper.errors import CreateIndexError, QueryError
+from scraper.interfaces import Query, Rag
 
 
-class QuestionAnswering:
+class WebRag(Rag):
     """
-    Handles the question-answering functionality using LlamaIndex and a vector store for retrieval.
+    Handles the RAG functionality using LlamaIndex vector index.
     """
 
-    def __init__(
-        self,
-        documents: List[str],
-        embedding_model_name: str,
-        open_ai_key: str,
-        model_name: str = "gpt-3.5-turbo",
-        embedding_model=None,
-        llm_model=None,
-    ):
+    def __init__(self, documents: List[str], model_config: LLMConfig):
         """
         Initializes the QuestionAnswering instance with a list of documents.
 
         Args:
             documents (List[str]): A list of documents as strings.
-            embedding_model_name: Embedding model name.
-            open_ai_key: Open AI key for generation.
-            model: LLM model.
+            model_config: Model parameters
         """
         self.documents = [Document(text=text) for text in documents]
-        self.embed_model = embedding_model or HuggingFaceEmbedding(
-            model_name=embedding_model_name
+        self.embed_model = HuggingFaceEmbedding(
+            model_name=model_config.embedding_model_name
         )
-        self.open_ai_key = open_ai_key
+        self.llm = OpenAI(
+            model=model_config.llm_model_name, api_key=model_config.api_key
+        )
         self.conversation_history = []
-        self.llm = llm_model or OpenAI(model=model_name, api_key=self.open_ai_key)
 
     def create_index(self):
         """
@@ -88,29 +81,19 @@ class QuestionAnswering:
                 query_engine_tools=[list_tool, vector_tool],
                 llm=self.llm,
             )
-
             logging.info("Index created successfully.")
         except CreateIndexError as e:
             logging.error(f"Failed to create index: {e}")
             raise
 
-    def query(self, question: str) -> str:
-        """
-        Queries the index and retrieves an answer based on the input question.
-
-        Args:
-            question (str): The question to ask.
-
-        Returns:
-            str: The answer to the question.
-        """
+    def rag(self, prompt: str) -> str:
         if not self.query_engine:
             logging.error("Query engine has not been created. Load documents first.")
             return "Query engine has not been created. Load documents first."
 
         try:
             # Add the question to the conversation history
-            self.conversation_history.append(("Q", question))
+            self.conversation_history.append(("Q", prompt))
 
             # Formulate the context by concatenating the conversation history
             context = "\n".join(
@@ -118,20 +101,34 @@ class QuestionAnswering:
             )
 
             # Query the engine with the given question and context
-            logging.info("Query the engine with the given question and context...")
+            logging.info("Query the vector index with the given prompt...")
             response = self.query_engine.query(context)
-            context = str(response)
+            logging.info(f"Vector index result: {response}")
+            return str(response)
 
+        except QueryError as e:
+            logging.error(f"Failed to process query: {e}")
+            return f"Error: {e}"
+
+    def query(self, context: str) -> str:
+        """
+        Queries the index and retrieves an answer based on the input question.
+
+        Args:
+            context (str): The context to be sent to llm.
+
+        Returns:
+            str: The llm response.
+        """
+        try:
             # Query the remote LLM with the context and question
-            logging.info("Query the remote LLM with the context and question...")
-            llm_response = self.llm.complete(context)
+            logging.info(f"Query the remote LLM with the context: {context}")
+            response = self.llm.complete(context)
 
             # Add the response to the conversation history
-            logging.info("Add the response to the conversation history...")
-            self.conversation_history.append(("A", llm_response))
-
-            return llm_response
-
+            logging.info(f"Add the response to the conversation history: {response}")
+            self.conversation_history.append(("A", response))
+            return response
         except QueryError as e:
             logging.error(f"Failed to process query: {e}")
             return f"Error: {e}"

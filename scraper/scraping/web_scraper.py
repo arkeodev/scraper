@@ -13,11 +13,12 @@ from playwright.sync_api import sync_playwright
 
 from scraper.config import ScraperConfig
 from scraper.errors import BrowserLaunchError, PageScrapingError, RobotsTxtError
-from scraper.robots import RobotsTxtChecker
+from scraper.interfaces import Scraper
+from scraper.scraping.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
 
-class WebScraper:
+class WebScraper(Scraper):
     """
     A class responsible for web scraping operations.
     """
@@ -70,7 +71,7 @@ class WebScraper:
             logging.info(f"Scraping page: {self.base_url}")
             page = browser.new_page()
             page.goto(self.base_url)
-            time.sleep(ScraperConfig.page_load_sleep)
+            time.sleep(ScraperConfig().page_load_sleep)
             page_source = page.content()
             self._parse_page(page_source)
             page.close()

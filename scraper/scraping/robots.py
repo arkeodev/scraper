@@ -42,7 +42,9 @@ class RobotsTxtChecker:
         parsed_url = urlparse(base_url)
         scheme = parsed_url.scheme
         netloc = parsed_url.netloc
-        return f"{scheme}://{netloc}/robots.txt"
+        robot_url = f"{scheme}://{netloc}/robots.txt"
+        logging.info(f"Robots url: {robot_url}")
+        return robot_url
 
     def fetch(self) -> None:
         """

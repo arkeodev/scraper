@@ -1,12 +1,15 @@
 streamlit==1.36.0
 requests==2.32.3
 beautifulsoup4==4.12.3
-playwright==1.44.0
+playwright
+scrapegraphai
 readability-lxml==0.8.1
 trafilatura==1.10.0
 tenacity==8.2.3
 llama-index==0.10.45
 llama-index-embeddings-huggingface==0.2.2
+langchain
+langchain-openai
 pytest==8.2.2
 black==24.4.2
 pre-commit==3.7.1
