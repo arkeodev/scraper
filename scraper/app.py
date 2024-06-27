@@ -3,6 +3,7 @@ Application main logic
 """
 
 import logging
+from urllib.parse import urlparse
 
 import streamlit as st
 
@@ -10,7 +11,12 @@ from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
 from scraper.query.qa import WebRag
 from scraper.scraping.web_scraper import WebScraper
-from scraper.utils import install_playwright_chromium, is_valid_url, url_exists
+from scraper.utils import (
+    check_robots,
+    install_playwright_chromium,
+    is_valid_url,
+    url_exists,
+)
 
 
 def set_error(message: str) -> None:
@@ -33,10 +39,13 @@ def start_scraping() -> None:
         set_error("URL cannot be empty. Please enter a valid URL.")
         return
     if not is_valid_url(url):
-        set_error("Invalid URL format")
+        set_error("Invalid URL format.")
         return
     if not url_exists(url):
-        set_error("The URL does not exist")
+        set_error("The URL does not exist.")
+        return
+    if not check_robots(url):
+        set_error("The robots.txt file not allow to parse the URL.")
         return
     if not openai_api_key:
         set_error("Please add your OpenAI API key to continue.")

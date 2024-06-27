@@ -4,7 +4,7 @@ Module for web scraping operations using Playwright.
 
 import logging
 import time
-from typing import Callable, List, Optional
+from typing import List
 from urllib.parse import urlparse
 
 from playwright.sync_api import Browser
@@ -12,9 +12,8 @@ from playwright.sync_api import Error as PlaywrightError
 from playwright.sync_api import sync_playwright
 
 from scraper.config import ScraperConfig
-from scraper.errors import BrowserLaunchError, PageScrapingError, RobotsTxtError
+from scraper.errors import BrowserLaunchError, PageScrapingError
 from scraper.interfaces import Scraper
-from scraper.scraping.robots import RobotsTxtChecker
 from scraper.utils import extract_readable_text
 
 
@@ -23,15 +22,8 @@ class WebScraper(Scraper):
     A class responsible for web scraping operations.
     """
 
-    def __init__(
-        self,
-        base_url: str,
-        robots_checker: Optional[RobotsTxtChecker] = None,
-        parser: Optional[Callable] = None,
-    ):
-        self.base_url = base_url
-        self.robots_checker = robots_checker or RobotsTxtChecker(base_url)
-        self.parser = parser or extract_readable_text
+    def __init__(self, url: str):
+        self.url = url
         self.documents = []  # Use list to store documents
 
     def _setup_browser(self) -> Browser:
@@ -58,19 +50,10 @@ class WebScraper(Scraper):
         """
         try:
             logging.info("Starting scraping process")
-            try:
-                if not self._check_robots():
-                    logging.info(f"Access to {self.base_url} disallowed by robots.txt.")
-                    return []
-            except RobotsTxtError as e:
-                logging.warning(
-                    f"Proceeding with scraping despite robots.txt error: {e}"
-                )
-
             browser = self._setup_browser()
-            logging.info(f"Scraping page: {self.base_url}")
+            logging.info(f"Scraping page: {self.url}")
             page = browser.new_page()
-            page.goto(self.base_url)
+            page.goto(self.url)
             time.sleep(ScraperConfig().page_load_sleep)
             page_source = page.content()
             self._parse_page(page_source)
@@ -81,20 +64,6 @@ class WebScraper(Scraper):
         logging.info(f"Total documents collected: {len(self.documents)}")
         return self.documents
 
-    def _check_robots(self) -> bool:
-        """
-        Checks the robots.txt file for permissions.
-
-        Returns:
-            bool: True if allowed to scrape, False otherwise.
-        """
-        try:
-            self.robots_checker.fetch()
-            return self.robots_checker.is_allowed(urlparse(self.base_url).path)
-        except RobotsTxtError as e:
-            logging.error(f"An error occurred while checking robots.txt: {e}")
-            return False
-
     def _parse_page(self, page_content: str) -> None:
         """
         Scrapes a single page.
@@ -102,8 +71,8 @@ class WebScraper(Scraper):
         Args:
             page_content (str): The content of the page to scrape.
         """
-        readable_text = self.parser(page_content)
+        readable_text = extract_readable_text(page_content)
         if readable_text:
             self.documents.append(readable_text)
             return
-        logging.warning(f"No readable text found at {self.base_url}")
+        logging.warning(f"No readable text found at {self.url}")
