@@ -1,13 +1,13 @@
 streamlit==1.36.0
 requests==2.32.3
 beautifulsoup4==4.12.3
-playwright
-scrapegraphai
+playwright==1.43.0
+scrapegraphai==1.7.5
 readability-lxml==0.8.1
 trafilatura==1.10.0
 tenacity==8.2.3
-langchain
-langchain-openai
+langchain==0.1.15
+langchain-openai==0.1.6
 pytest==8.2.2
 black==24.4.2
 pre-commit==3.7.1
