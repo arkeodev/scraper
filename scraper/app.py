@@ -8,6 +8,7 @@ import streamlit as st
 
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
+from scraper.interfaces import Rag
 from scraper.sg_qa import SgRag
 from scraper.sg_scraper import SgScraper
 from scraper.utils import (
@@ -77,7 +78,7 @@ def start_scraping() -> None:
         )
 
 
-def scrape_and_process(url: str, llm_config: LLMConfig) -> WebRag:
+def scrape_and_process(url: str, llm_config: LLMConfig) -> Rag:
     """Scrapes the given URL and processes the documents for question answering."""
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {llm_config.embedding_model_name}")
