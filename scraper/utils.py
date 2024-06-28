@@ -11,7 +11,7 @@ import trafilatura
 from readability import Document
 
 from scraper.errors import BrowserLaunchError, RobotsTxtError
-from scraper.scraping.robots import RobotsTxtChecker
+from scraper.robots import RobotsTxtChecker
 
 
 def get_prompt_template() -> str:
