@@ -30,20 +30,25 @@ class SgRag(Rag):
         """
         self.documents = documents
         self.embed_model = OpenAIEmbeddings(api_key=model_config.api_key)
-        self.llm = OpenAI(
-            model=model_config.llm_model_name, api_key=model_config.api_key
-        )
+        llm_config = {
+            "model_name": model_config.llm_model_name,
+            "openai_api_key": model_config.api_key,
+            "max_tokens": model_config.max_tokens,
+            "temperature": model_config.temperature,
+        }
+        self.llm = OpenAI(llm_config=llm_config)
         self.conversation_history = []
 
     def rag(self, prompt: str) -> str:
         try:
             # Add the question to the conversation history
-            self.conversation_history.append(("Q", prompt))
+            # self.conversation_history.append(("Q", prompt))
+            logging.info(f"The question is: {prompt}")
 
             # Formulate the context by concatenating the conversation history
-            context = "\n".join(
-                [f"{q_or_a}: {text}" for q_or_a, text in self.conversation_history]
-            )
+            # context = "\n".join(
+            #     [f"{q_or_a}: {text}" for q_or_a, text in self.conversation_history]
+            # )
 
             # Define the graph nodes
             rag_node = RAGNode(
@@ -74,19 +79,21 @@ class SgRag(Rag):
                 entry_point=rag_node,
             )
 
+            logging.info(f"Document: {self.documents}")
+
             # Execute the graph
             result, execution_info = graph.execute(
                 {"user_prompt": prompt, "parsed_doc": self.documents}
             )
 
+            logging.info(f"The result is: {result}")
+
             # get the answer from the result
             result = result.get("answer", "No answer found.")
-            print(result)
-            print(execution_info)
 
             # Add the response to the conversation history
-            logging.info(f"Add the response to the conversation history: {result}")
-            self.conversation_history.append(("A", result))
+            logging.info(f"The response is: {result}")
+            # self.conversation_history.append(("A", result))
             return result
 
         except QueryError as e:

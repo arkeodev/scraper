@@ -9,6 +9,8 @@ import streamlit as st
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
 from scraper.query.qa import WebRag
+from scraper.query.sg_qa import SgRag
+from scraper.scraping.sg_scraper import SgScraper
 from scraper.scraping.web_scraper import WebScraper
 from scraper.utils import (
     check_robots,
@@ -81,14 +83,12 @@ def scrape_and_process(url: str, llm_config: LLMConfig) -> WebRag:
     """Scrapes the given URL and processes the documents for question answering."""
     logging.info(f"Scraping URL: {url}")
     logging.info(f"Using embedding model: {llm_config.embedding_model_name}")
-    scraper = WebScraper(url)
+    scraper = SgScraper(url)
     documents = scraper.scrape()
     if not documents:
         logging.error("Scraper returned None for documents")
         raise PageScrapingError("Failed to scrape documents")
-    logging.info(f"Scraped {len(documents)} documents")
-    rag_instance = WebRag(documents, llm_config)
-    rag_instance.create_index()
+    rag_instance = SgRag(documents, llm_config)
     return rag_instance
 
 

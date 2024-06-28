@@ -5,7 +5,6 @@ from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import FetchNode, ParseNode
 
 from scraper.interfaces import Scraper
-from scraper.utils import extract_readable_text
 
 
 class SgScraper(Scraper):
@@ -49,9 +48,8 @@ class SgScraper(Scraper):
                 logging.warning("No parsed document found.")
                 return []
 
-            parsed_doc = extract_readable_text(parsed_doc_list[0])
-            logging.info(f"Document size: {len(parsed_doc)} characters")
-            return list(parsed_doc)
+            logging.info(f"Document size: {len(parsed_doc_list)} characters")
+            return parsed_doc_list
 
         except Exception as e:
             logging.error(f"Error during scraping: {e}")

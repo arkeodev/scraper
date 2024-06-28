@@ -31,7 +31,7 @@ class LLMConfig(BaseModel):
     api_key: str = None
     embedding_model_name: str
     temperature: Optional[float] = Field(0.7, ge=0.0, le=1.0)
-    max_tokens: Optional[int] = Field(10_000, gt=0)
+    max_tokens: Optional[int] = Field(1_000, gt=0)
 
 
 class RAGConfig(BaseModel):
