@@ -4,7 +4,7 @@ Configuration module for application settings.
 
 from typing import Optional
 
-from pydantic import BaseModel, Field, ValidationError, field_validator
+from pydantic import BaseModel, Field
 
 # Matches the embedding model names with the language
 embedding_models_dict = {

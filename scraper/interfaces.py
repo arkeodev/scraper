@@ -3,13 +3,23 @@ from typing import List
 
 
 class Scraper(ABC):
-    """
-    Abstract class for scraping and index creation.
-    """
+    def __init__(self, url: str):
+        """
+        Initializes the Scraper instance.
+
+        Args:
+            url str: The url to be scraped
+        """
+        self.url = url
 
     @abstractmethod
     def scrape(self):
-        """Scrape data from the source."""
+        """
+        Scrape data from the source.
+
+        Returns:
+            List[str]: List of documents scraped.
+        """
         pass
 
     def __str__(self):
@@ -20,11 +30,9 @@ class Scraper(ABC):
 
 
 class Rag(ABC):
-    """RAG abstract class."""
-
     def __init__(self, documents: List[str], model_config: dict):
         """
-        Initializes the RAG instance with a list of documents.
+        Initializes the RAG instance.
 
         Args:
             documents (List[str]): A list of documents as strings.
@@ -35,25 +43,14 @@ class Rag(ABC):
 
     @abstractmethod
     def rag(self, prompt: str) -> str:
-        """Return the most similar retrieval results for the given question.
+        """
+        Gets the user prompt and generate an LLM response vie retrieval documents.
 
         Args:
             prompt str: The user prompt.
 
         Returns:
-            str: A string of matching documents.
-        """
-        pass
-
-    @abstractmethod
-    def query(self, context: str) -> str:
-        """Return the llm result for the given context.
-
-        Args:
-            index (Index): The index to search.
-
-        Returns:
-            List[str]: A list of matching documents.
+            str: LLM response.
         """
         pass
 
@@ -62,13 +59,3 @@ class Rag(ABC):
 
     def __repr__(self):
         return f"RAGAbstract()"
-
-
-class Query(ABC):
-    """Query abstract class."""
-
-    def __str__(self):
-        return "QueryAbstract"
-
-    def __repr__(self):
-        return f"QueryAbstract()"

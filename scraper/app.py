@@ -3,7 +3,6 @@ Application main logic
 """
 
 import logging
-from urllib.parse import urlparse
 
 import streamlit as st
 

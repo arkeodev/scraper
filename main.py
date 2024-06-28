@@ -113,8 +113,7 @@ def display_scraping_ui() -> None:
 def handle_submit(user_input: str):
     """Handle the submission of the chat input."""
     with st.spinner("Fetching answer..."):
-        context = st.session_state.qa.rag(user_input)
-        answer = st.session_state.qa.query(context)
+        answer = st.session_state.qa.rag(user_input)
         st.session_state.chat_history.append(("assistant", answer))
         st.session_state.chat_history.append(("user", user_input))
 

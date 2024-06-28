@@ -14,7 +14,7 @@ from llama_index.llms.openai import OpenAI
 
 from scraper.config import LLMConfig
 from scraper.errors import CreateIndexError, QueryError
-from scraper.interfaces import Query, Rag
+from scraper.interfaces import Rag
 
 
 class WebRag(Rag):
@@ -104,30 +104,15 @@ class WebRag(Rag):
             logging.info("Query the vector index with the given prompt...")
             response = self.query_engine.query(context)
             logging.info(f"Vector index result: {response}")
-            return str(response)
 
-        except QueryError as e:
-            logging.error(f"Failed to process query: {e}")
-            return f"Error: {e}"
-
-    def query(self, context: str) -> str:
-        """
-        Queries the index and retrieves an answer based on the input question.
-
-        Args:
-            context (str): The context to be sent to llm.
-
-        Returns:
-            str: The llm response.
-        """
-        try:
             # Query the remote LLM with the context and question
             logging.info(f"Query the remote LLM with the context: {context}")
-            response = self.llm.complete(context)
+            response = self.llm.complete(str(response))
 
             # Add the response to the conversation history
             logging.info(f"Add the response to the conversation history: {response}")
             self.conversation_history.append(("A", response))
+
             return response
         except QueryError as e:
             logging.error(f"Failed to process query: {e}")
