@@ -76,7 +76,7 @@ class SgRag(Rag):
 
             # Execute the graph
             result, execution_info = graph.execute(
-                {"user_prompt": context, "parsed_doc": self.documents}
+                {"user_prompt": prompt, "parsed_doc": self.documents}
             )
 
             # get the answer from the result
