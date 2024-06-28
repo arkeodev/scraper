@@ -106,7 +106,7 @@ def initialize_session_state() -> None:
         "model_name_key": "gpt-3.5-turbo",
         "language_key": "english",
         "temperature_key": 0.7,
-        "max_tokens_key": 10_000,
+        "max_tokens_key": 1000,
         "status": [],
         "qa": None,
         "chat_history": [],
@@ -132,7 +132,7 @@ def clear_state() -> None:
     st.session_state.model_name_key = "gpt-3.5-turbo"
     st.session_state.language_key = "english"
     st.session_state.temperature_key = 0.7
-    st.session_state.max_tokens_key = 10_000
+    st.session_state.max_tokens_key = 1000
     st.session_state.scraping_done = False
     st.cache_data.clear()
     st.session_state.refresh_triggered = False

@@ -89,7 +89,7 @@ def display_config_ui() -> None:
         "Temperature", 0.0, 1.0, 0.7, key="temperature_key"
     )
     st.session_state.max_tokens = st.number_input(
-        "Max Tokens", min_value=1, value=1_000, key="max_tokens_key"
+        "Max Tokens", min_value=1, value=1000, key="max_tokens_key"
     )
 
 
@@ -114,7 +114,9 @@ def handle_submit(user_input: str):
     """Handle the submission of the chat input."""
     with st.spinner("Fetching answer..."):
         answer = st.session_state.qa.rag(user_input)
-        st.session_state.chat_history.append(("assistant", answer["answer"]))
+        if not answer:
+            answer = "I'm sorry, I don't answer this question."
+        st.session_state.chat_history.append(("assistant", answer))
         st.session_state.chat_history.append(("user", user_input))
 
         # Reverse the list to display the latest message first
