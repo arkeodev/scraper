@@ -8,10 +8,8 @@ import streamlit as st
 
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
-from scraper.query.qa import WebRag
-from scraper.query.sg_qa import SgRag
-from scraper.scraping.sg_scraper import SgScraper
-from scraper.scraping.web_scraper import WebScraper
+from scraper.sg_qa import SgRag
+from scraper.sg_scraper import SgScraper
 from scraper.utils import (
     check_robots,
     install_playwright_chromium,
