@@ -29,7 +29,7 @@ def main():
     with left_column:
         display_title()
         display_scraping_ui()
-        with st.expander("Configuration", expanded=True):
+        with st.expander("Configuration", expanded=False):
             display_config_ui()
         st.markdown(" ")
         # Add styled GitHub link at the bottom
@@ -55,6 +55,17 @@ def display_title() -> None:
 
 def display_config_ui() -> None:
     """Display configuration options for the scraper."""
+    # Task selection
+    st.task_name = st.selectbox(
+        "Select Task",
+        options=[
+            "Parse the URL text and ask questions to answer",
+        ],
+        placeholder="Select task...",
+        index=0,
+        key="task_key",
+        disabled=st.session_state.scraping_done,
+    )
     st.session_state.language = st.selectbox(
         "Select the Language of the Web Site:",
         options=("english", "turkish"),
@@ -71,6 +82,15 @@ def display_config_ui() -> None:
         key="model_name_key",
         disabled=st.session_state.scraping_done,
     )
+    st.session_state.openai_key = st.text_input(
+        "OpenAI API Key", key="chatbot_api_key", type="password"
+    )
+    st.session_state.temperature = st.slider(
+        "Temperature", 0.0, 1.0, 0.7, key="temperature_key"
+    )
+    st.session_state.max_tokens = st.number_input(
+        "Max Tokens", min_value=1, value=1000, key="max_tokens_key"
+    )
 
 
 def display_scraping_ui() -> None:
@@ -80,12 +100,8 @@ def display_scraping_ui() -> None:
         key="url_input",
         placeholder="http://example.com",
     )
-    st.session_state.openai_key = st.text_input(
-        "OpenAI API Key", key="chatbot_api_key", type="password"
-    )
     if st.session_state.error_mes:
         st.error(f"{st.session_state.error_mes}")
-
     st.button(
         "Start",
         on_click=lambda: start_scraping(),
@@ -97,7 +113,9 @@ def display_scraping_ui() -> None:
 def handle_submit(user_input: str):
     """Handle the submission of the chat input."""
     with st.spinner("Fetching answer..."):
-        answer = st.session_state.qa.query(user_input)
+        answer = st.session_state.qa.rag(user_input)
+        if not answer:
+            answer = "I'm sorry, I don't answer this question."
         st.session_state.chat_history.append(("assistant", answer))
         st.session_state.chat_history.append(("user", user_input))
 

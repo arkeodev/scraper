@@ -4,12 +4,14 @@ Utility functions for text extraction, URL validation, and prompt template gener
 
 import logging
 import os
+from urllib.parse import urlparse
 
 import requests
 import trafilatura
 from readability import Document
 
-from scraper.errors import BrowserLaunchError
+from scraper.errors import BrowserLaunchError, RobotsTxtError
+from scraper.scraping.robots import RobotsTxtChecker
 
 
 def get_prompt_template() -> str:
@@ -128,3 +130,19 @@ def install_playwright_chromium() -> None:
             f"Failed to install Playwright Chromium and its dependencies: {e}"
         )
         raise BrowserLaunchError("Failed to install Playwright Chromium browser")
+
+
+def check_robots(url) -> bool:
+    """
+    Checks the robots.txt file for permissions.
+
+    Returns:
+        bool: True if allowed to scrape, False otherwise.
+    """
+    try:
+        robots_checker = RobotsTxtChecker(url)
+        robots_checker.fetch()
+        return robots_checker.is_allowed(urlparse(url).path)
+    except RobotsTxtError as e:
+        logging.error(f"An error occurred while checking robots.txt: {e}")
+        return False

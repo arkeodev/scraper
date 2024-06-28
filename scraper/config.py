@@ -2,11 +2,18 @@
 Configuration module for application settings.
 """
 
-from dataclasses import dataclass
+from typing import Optional
+
+from pydantic import BaseModel, Field
+
+# Matches the embedding model names with the language
+embedding_models_dict = {
+    "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
+    "english": "BAAI/bge-small-en-v1.5",
+}
 
 
-@dataclass
-class ScraperConfig:
+class ScraperConfig(BaseModel):
     """
     Configuration for the web scraper settings.
 
@@ -19,8 +26,16 @@ class ScraperConfig:
     page_load_sleep: int = 5
 
 
-# Matches the embedding model names with the language
-embedding_models_dict = {
-    "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
-    "english": "BAAI/bge-small-en-v1.5",
-}
+class LLMConfig(BaseModel):
+    llm_model_name: str
+    api_key: str = None
+    embedding_model_name: str
+    temperature: Optional[float] = Field(0.7, ge=0.0, le=1.0)
+    max_tokens: Optional[int] = Field(1_000, gt=0)
+
+
+class RAGConfig(BaseModel):
+    task_definition: str = None
+    llm_config: LLMConfig
+    vector_store_path: str = None
+    query: str = None
