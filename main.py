@@ -102,12 +102,18 @@ def display_scraping_ui() -> None:
     )
     if st.session_state.error_mes:
         st.error(f"{st.session_state.error_mes}")
-    st.button(
-        "Start",
-        on_click=lambda: start_scraping(),
-        disabled=st.session_state.scraping_done,
-    )
-    st.button("Refresh", on_click=trigger_refresh)
+
+    start_col, refresh_col = st.columns([1, 1], gap="small")
+
+    with start_col:
+        st.button(
+            "Start",
+            on_click=lambda: start_scraping(),
+            key="start_button",
+            disabled=st.session_state.scraping_done,
+        )
+    with refresh_col:
+        st.button("Refresh", key="refresh_button", on_click=trigger_refresh)
 
 
 def handle_submit(user_input: str):
