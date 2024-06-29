@@ -23,10 +23,10 @@ class Scraper(ABC):
         pass
 
     def __str__(self):
-        return "Scraper"
+        return f"{self.__class__.__name__} at {self.url}"
 
     def __repr__(self):
-        return f"Scraper()"
+        return f"{self.__class__.__name__}(url={self.url!r})"
 
 
 class Rag(ABC):
@@ -42,7 +42,7 @@ class Rag(ABC):
         self.model_config = model_config
 
     @abstractmethod
-    def rag(self, prompt: str) -> str:
+    def execute(self, prompt: str) -> str:
         """
         Gets the user prompt and generate an LLM response vie retrieval documents.
 
