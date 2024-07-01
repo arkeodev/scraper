@@ -33,7 +33,7 @@ class PdfScraper(Scraper):
         self.parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
-            node_config={"parse_html": False, "chunk_size": 4096},
+            node_config={"parse_html": False, "chunk_size": 1024},
         )
 
         self.graph = BaseGraph(
@@ -52,15 +52,16 @@ class PdfScraper(Scraper):
         try:
             # Execute the graph
             result, _ = self.graph.execute(
-                {"user_prompt": "Describe the content", "pdf": self.source}
+                {"user_prompt": "", self.input_key: self.source}
             )
             # Get the parsed document from the result
-            parsed_doc_list = result.get("parsed_doc", [])
-            if parsed_doc_list:
-                logging.info(f"Document size: {len(parsed_doc_list)} characters")
+            docs = result.get("doc", [])
+            doc_list = [doc.page_content for doc in docs]
+            if doc_list:
+                logging.info(f"Total {len(doc_list)} documets.")
             else:
                 logging.warning("No parsed document found.")
-            return parsed_doc_list
+            return doc_list
 
         except Exception as e:
             logging.error(f"Error during scraping: {e}", exc_info=True)
