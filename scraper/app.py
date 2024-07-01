@@ -4,13 +4,12 @@ Application main logic
 
 import logging
 
-import streamlit as st
-
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
 from scraper.interfaces import Rag
-from scraper.sg_qa import SgRag
-from scraper.sg_scraper import SgScraper
+from scraper.pdf_scraper import PdfScraper
+from scraper.qa import SgRag
+from scraper.url_scraper import UrlScraper
 from scraper.utils import (
     check_robots,
     install_playwright_chromium,
@@ -19,70 +18,74 @@ from scraper.utils import (
 )
 
 
-def set_error(message: str) -> None:
-    """Helper function to set the session state error message."""
-    st.session_state.error_mes = message
-
-
-def start_scraping() -> None:
-    """Starts the scraping task with improved structure and error handling."""
-    url = st.session_state.get("url")
-    openai_api_key = st.session_state.get("openai_key")
-    model_name = st.session_state.get("model_name_key")
-    temperature = st.session_state.get("temperature_key")
-    max_tokens = st.session_state.get("max_tokens_key")
-    embedding_model_name = embedding_models_dict[
-        st.session_state.get("language_key", "english")
-    ]
-
-    if not url:
-        set_error("URL cannot be empty. Please enter a valid URL.")
-        return
-    if not is_valid_url(url):
-        set_error("Invalid URL format.")
-        return
-    if not url_exists(url):
-        set_error("The URL does not exist.")
-        return
-    if not check_robots(url):
-        set_error("The robots.txt file not allow to parse the URL.")
-        return
-    if not openai_api_key:
-        set_error("Please add your OpenAI API key to continue.")
+def initiate_scraping_process(session_state):
+    """Begins the scraping task after performing necessary validations."""
+    if not validate_input(session_state):
         return
 
     try:
-        install_playwright_chromium()
-        llm_config = LLMConfig(
-            llm_model_name=model_name,
-            embedding_model_name=embedding_model_name,
-            api_key=openai_api_key,
-            temperature=temperature,
-            max_tokens=max_tokens,
+        setup_dependencies()
+        llm_config = configure_llm(session_state)
+        process_and_update_state(
+            scrape_and_process(session_state, llm_config), session_state
         )
-        rag_instance = scrape_and_process(url, llm_config)
-        st.session_state.update(
-            {
-                "qa": rag_instance,
-                "scraping_done": True,
-                "error_mes": "",
-            }
-        )
-    except ValueError as ve:
-        set_error(f"An error occurred: {ve}")
-        logging.error(f"An error occurred during scraping: {ve}")
     except Exception as e:
-        set_error(f"An unexpected error occurred: {e}")
-        logging.error(
-            f"An unexpected error occurred during scraping: {e}", exc_info=True
+        handle_error(e, session_state)
+
+
+def validate_input(session_state) -> bool:
+    """Validate user inputs and set error message if invalid."""
+    source = session_state.get("source")
+    input_type = session_state.get("input_type")
+    openai_api_key = session_state.get("chatbot_api_key")
+    if not source:
+        set_error(
+            "Source selection cannot be empty. Please enter a valid source.",
+            session_state,
         )
+        return False
+    elif input_type == "url":
+        if not is_valid_url(source):
+            set_error("Invalid URL format.")
+            return
+        if not url_exists(source):
+            set_error("The URL does not exist.")
+            return
+        if not check_robots(source):
+            set_error("The robots.txt file not allow to parse the URL.")
+            return
+    elif not openai_api_key:
+        set_error("Please add your OpenAI API key to continue.")
+        return
+    return True
 
 
-def scrape_and_process(url: str, llm_config: LLMConfig) -> Rag:
-    """Scrapes the given URL and processes the documents for question answering."""
-    logging.info(f"Scraping URL: {url}")
+def setup_dependencies():
+    """Ensure all external dependencies are set up."""
+    install_playwright_chromium()
+
+
+def configure_llm(session_state) -> LLMConfig:
+    """Configure and return the LLM configuration settings."""
+    return LLMConfig(
+        llm_model_name=session_state.get("model_name_key"),
+        embedding_model_name=embedding_models_dict.get(
+            session_state.get("language_key", "english")
+        ),
+        api_key=session_state.get("openai_key"),
+        temperature=session_state.get("temperature_key"),
+        max_tokens=session_state.get("max_tokens_key"),
+    )
+
+
+def scrape_and_process(session_state: dict, llm_config: LLMConfig) -> Rag:
+    """Scrapes the given URL or PDF and processes the documents for question answering."""
+    logging.info(f"Scraping: {session_state.get('source')}")
     logging.info(f"Using embedding model: {llm_config.embedding_model_name}")
-    scraper = SgScraper(url)
+    if session_state.get("input_type") == "url":
+        scraper = UrlScraper(source=session_state.get("source"))
+    else:
+        scraper = PdfScraper(source=session_state.get("source"))
     documents = scraper.scrape()
     if not documents:
         logging.error("Scraper returned None for documents")
@@ -91,49 +94,24 @@ def scrape_and_process(url: str, llm_config: LLMConfig) -> Rag:
     return rag_instance
 
 
-def trigger_refresh() -> None:
-    """Triggers a refresh by setting the flag."""
-    st.session_state.refresh_triggered = True
-    st.rerun()
+def process_and_update_state(rag_instance, session_state):
+    """Update the session state with results from the scraping."""
+    session_state.update(
+        {
+            "qa": rag_instance,
+            "scraping_done": True,
+            "error_mes": "",
+        }
+    )
 
 
-def initialize_session_state() -> None:
-    """Initialize session state variables if not already set."""
-    session_defaults = {
-        "url": "",
-        "chatbot_api_key": "",
-        "model_name_key": "gpt-3.5-turbo",
-        "language_key": "english",
-        "temperature_key": 0.7,
-        "max_tokens_key": 1000,
-        "status": [],
-        "qa": None,
-        "chat_history": [],
-        "scraping_done": False,
-        "question_input": "",
-        "refresh_triggered": False,
-        "error_mes": "",
-    }
-    for key, value in session_defaults.items():
-        if key not in st.session_state:
-            st.session_state[key] = value
+def handle_error(exception, session_state):
+    """Handle exceptions and update session state with error message."""
+    error_message = f"An error occurred: {exception}"
+    logging.error(error_message, exc_info=True)
+    set_error(error_message, session_state)
 
 
-def clear_state() -> None:
-    """Clears the session state."""
-    for key in list(st.session_state.keys()):
-        del st.session_state[key]
-    st.session_state.status = []
-    st.session_state.url_input = ""
-    st.session_state.chatbot_api_key = ""
-    st.session_state.question_input = ""
-    st.session_state.chat_history = []
-    st.session_state.model_name_key = "gpt-3.5-turbo"
-    st.session_state.language_key = "english"
-    st.session_state.temperature_key = 0.7
-    st.session_state.max_tokens_key = 1000
-    st.session_state.scraping_done = False
-    st.cache_data.clear()
-    st.session_state.refresh_triggered = False
-    st.session_state.error_mes = ""
-    st.rerun()
+def set_error(message: str, session_state) -> None:
+    """Helper function to set the session state error message."""
+    session_state["error_mes"] = message

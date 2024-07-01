@@ -3,14 +3,14 @@ from typing import List
 
 
 class Scraper(ABC):
-    def __init__(self, url: str):
+    def __init__(self, source: str):
         """
         Initializes the Scraper instance.
 
         Args:
-            url str: The url to be scraped
+            source str: The definition of the source to be scraped
         """
-        self.url = url
+        self.source = source
 
     @abstractmethod
     def scrape(self):
@@ -23,10 +23,10 @@ class Scraper(ABC):
         pass
 
     def __str__(self):
-        return f"{self.__class__.__name__} at {self.url}"
+        return f"{self.__class__.__name__} at {self.source}"
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(url={self.url!r})"
+        return f"{self.__class__.__name__}(url={self.source!r})"
 
 
 class Rag(ABC):

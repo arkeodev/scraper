@@ -1,3 +1,7 @@
+"""
+PDF Scraper module
+"""
+
 import logging
 from typing import List
 
@@ -7,18 +11,19 @@ from scrapegraphai.nodes import FetchNode, ParseNode
 from scraper.interfaces import Scraper
 
 
-class SgScraper(Scraper):
-    def __init__(self, url: str) -> None:
-        super().__init__(url)
+class PdfScraper(Scraper):
+    def __init__(self, source: str) -> None:
+        super().__init__(source)
         self._setup_graph()  # Set up the graph during initialization
+        self.input_key = "pdf" if source.endswith("pdf") else "pdf_dir"
 
     def _setup_graph(self):
         """
         Sets up the graph with the necessary nodes and configurations.
         """
         self.fetch_node = FetchNode(
-            input="url | local_dir",
-            output=["doc", "link_urls", "img_urls"],
+            input="pdf | pdf_dir",
+            output=["doc"],
             node_config={
                 "verbose": True,
                 "headless": True,
@@ -28,10 +33,7 @@ class SgScraper(Scraper):
         self.parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
-            node_config={
-                "chunk_size": 4096,
-                "verbose": True,
-            },
+            node_config={"parse_html": False, "chunk_size": 4096},
         )
 
         self.graph = BaseGraph(
@@ -42,7 +44,7 @@ class SgScraper(Scraper):
 
     def scrape(self) -> List[str]:
         """
-        Executes the graph to fetch and parse the document from a given URL.
+        Executes the graph to fetch and parse the document from a given PDF document.
 
         Returns:
             A list of parsed document segments or an empty list if an error occurs or if no data is parsed.
@@ -50,8 +52,9 @@ class SgScraper(Scraper):
         try:
             # Execute the graph
             result, _ = self.graph.execute(
-                {"user_prompt": "Describe the content", "url": self.url}
+                {"user_prompt": "Describe the content", "pdf": self.input_key}
             )
+            inputs = {"user_prompt": self.prompt, self.source: self.input_key}
 
             # Get the parsed document from the result
             parsed_doc_list = result.get("parsed_doc", [])

@@ -5,6 +5,7 @@ playwright==1.43.0
 scrapegraphai==1.7.5
 readability-lxml==0.8.1
 trafilatura==1.10.0
+PyPDF2==3.0.1
 tenacity==8.2.3
 langchain==0.1.15
 langchain-openai==0.1.6
