@@ -62,7 +62,7 @@ def display_scraping_ui() -> None:
 
     # Task selection using a select box
     task_options = {
-        "Parse the URL text": display_url_input,
+        "Parse a URL": display_url_input,
         "Parse PDF file(s)": display_file_uploader,
     }
 
@@ -199,7 +199,7 @@ def initialize_session_state() -> None:
         "chatbot_api_key": "",
         "model_name_key": "gpt-3.5-turbo",
         "language_key": "english",
-        "task_key": "Parse the URL text",
+        "task_key": "Parse a URL",
         "temperature_key": 0.7,
         "max_tokens_key": 1000,
         "status": [],
@@ -226,7 +226,7 @@ def clear_state() -> None:
     st.session_state.chat_history = []
     st.session_state.model_name_key = "gpt-3.5-turbo"
     st.session_state.language_key = "english"
-    st.session_state.task_key = "Parse the URL text"
+    st.session_state.task_key = "Parse a URL"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000
     st.session_state.scraping_done = False

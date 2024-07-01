@@ -22,7 +22,7 @@ mole is a Streamlit app designed to facilitate web scraping, data storage, and q
 - **Secure and Private**: Ensures that all data handling and storage adhere to best practices for security and privacy.
 
 ## Run from Streamlit Community Environment
-The application is hosted at [https://scraper-web.streamlit.app/](https://scraper-web.streamlit.app/).
+The application is hosted at [https://scraper-mole.streamlit.app/](https://scraper-mole.streamlit.app/).
 
 ## Run from Local
 To run the mole locally, follow these steps:
