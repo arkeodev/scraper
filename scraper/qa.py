@@ -77,7 +77,7 @@ class SgRag(Rag):
         logging.info(f"Received question: {prompt}")
         try:
             result, execution_info = self.graph.execute(
-                {"user_prompt": prompt, "parsed_doc": self.documents}
+                {"user_prompt": prompt, "doc": self.documents}
             )
             answer = result.get("answer", {})
             if isinstance(answer, dict) and answer:
