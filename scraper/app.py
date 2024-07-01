@@ -3,6 +3,7 @@ Application main logic
 """
 
 import logging
+from pathlib import Path
 
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
@@ -85,12 +86,16 @@ def scrape_and_process(session_state: dict, llm_config: LLMConfig) -> Rag:
     if session_state.get("input_type") == "url":
         scraper = UrlScraper(source=session_state.get("source"))
     else:
-        scraper = PdfScraper(source=session_state.get("source"))
+        uploaded_file = session_state.get("source")
+        file_path = save_uploaded_file(uploaded_file)
+        logging.info(f"File saved at: {file_path}")
+        scraper = PdfScraper(source=str(file_path))
     documents = scraper.scrape()
     if not documents:
         logging.error("Scraper returned None for documents")
         raise PageScrapingError("Failed to scrape documents")
     rag_instance = SgRag(documents, llm_config)
+
     return rag_instance
 
 
@@ -103,6 +108,29 @@ def process_and_update_state(rag_instance, session_state):
             "error_mes": "",
         }
     )
+
+
+def save_uploaded_file(uploaded_file, save_dir="/tmp"):
+    """
+    Saves an uploaded file to the specified directory and returns the path.
+    Works across Unix, macOS, and Windows.
+
+    Args:
+    uploaded_file: The uploaded file object from Streamlit.
+    save_dir: The directory to save the file. Defaults to '/tmp'.
+
+    Returns:
+    The path of the saved file as a pathlib.Path object.
+    """
+    save_directory = Path(save_dir)
+    save_directory.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+    file_path = save_directory / uploaded_file.name
+
+    # Write the file
+    with open(file_path, "wb") as f:
+        f.write(uploaded_file.getvalue())
+
+    return file_path
 
 
 def handle_error(exception, session_state):

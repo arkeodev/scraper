@@ -112,7 +112,7 @@ def display_file_uploader():
     """Display file uploader for PDF files."""
     st.session_state.source = st.file_uploader(
         "Choose a PDF file to parse",
-        type=["pdf", List[str]],
+        type=["pdf"],
         disabled=st.session_state.scraping_done,
     )
     st.session_state.input_type = "pdf"

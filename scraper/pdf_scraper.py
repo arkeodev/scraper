@@ -52,10 +52,8 @@ class PdfScraper(Scraper):
         try:
             # Execute the graph
             result, _ = self.graph.execute(
-                {"user_prompt": "Describe the content", "pdf": self.input_key}
+                {"user_prompt": "Describe the content", "pdf": self.source}
             )
-            inputs = {"user_prompt": self.prompt, self.source: self.input_key}
-
             # Get the parsed document from the result
             parsed_doc_list = result.get("parsed_doc", [])
             if parsed_doc_list:
