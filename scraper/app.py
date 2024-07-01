@@ -47,16 +47,16 @@ def validate_input(session_state) -> bool:
         return False
     elif input_type == "url":
         if not is_valid_url(source):
-            set_error("Invalid URL format.")
+            set_error("Invalid URL format.", session_state)
             return
         if not url_exists(source):
-            set_error("The URL does not exist.")
+            set_error("The URL does not exist.", session_state)
             return
         if not check_robots(source):
-            set_error("The robots.txt file not allow to parse the URL.")
+            set_error("The robots.txt file not allow to parse the URL.", session_state)
             return
     elif not openai_api_key:
-        set_error("Please add your OpenAI API key to continue.")
+        set_error("Please add your OpenAI API key to continue.", session_state)
         return
     return True
 
@@ -123,7 +123,7 @@ def save_uploaded_file(uploaded_file, save_dir="/tmp"):
     The path of the saved file as a pathlib.Path object.
     """
     save_directory = Path(save_dir)
-    save_directory.mkdir(parents=True, exist_ok=True)  # Ensure directory exists
+    save_directory.mkdir(parents=True, exist_ok=True)
     file_path = save_directory / uploaded_file.name
 
     # Write the file
