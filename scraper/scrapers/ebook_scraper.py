@@ -1,17 +1,18 @@
 """
-PDF Scraper module
+Ebook Scraper module
 """
 
 import logging
 from typing import List
 
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.nodes import FetchNode, ParseNode
+from scrapegraphai.nodes import ParseNode
 
 from scraper.interfaces import Scraper
+from scraper.nodes.ebook import EbookNode
 
 
-class PdfScraper(Scraper):
+class EbookScraper(Scraper):
     def __init__(self, source: str) -> None:
         super().__init__(source)
         self._setup_graph()  # Set up the graph during initialization
@@ -21,8 +22,8 @@ class PdfScraper(Scraper):
         """
         Sets up the graph with the necessary nodes and configurations.
         """
-        self.fetch_node = FetchNode(
-            input="pdf | pdf_dir",
+        self.fetch_node = EbookNode(
+            input="ebook",
             output=["doc"],
             node_config={
                 "verbose": True,

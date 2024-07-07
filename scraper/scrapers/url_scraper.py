@@ -8,7 +8,7 @@ from typing import List
 from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import FetchNode, ParseNode
 
-from scraper.interfaces import Scraper
+from scraper.interface import Scraper
 
 
 class UrlScraper(Scraper):

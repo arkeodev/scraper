@@ -9,6 +9,7 @@ PyPDF2==3.0.1
 tenacity==8.2.3
 langchain==0.1.15
 langchain-openai==0.1.6
+tika==2.6.0
 pytest==8.2.2
 black==24.4.2
 pre-commit==3.7.1

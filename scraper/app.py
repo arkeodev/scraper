@@ -7,12 +7,11 @@ from pathlib import Path
 
 from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
-from scraper.interfaces import Rag
-from scraper.pdf_scraper import PdfScraper
+from scraper.interface import Rag
 from scraper.qa import SgRag
-from scraper.url_scraper import UrlScraper
 from scraper.utils import (
     check_robots,
+    get_scraper,
     install_playwright_chromium,
     is_valid_url,
     url_exists,
@@ -37,27 +36,32 @@ def initiate_scraping_process(session_state):
 def validate_input(session_state) -> bool:
     """Validate user inputs and set error message if invalid."""
     source = session_state.get("source")
-    input_type = session_state.get("input_type")
+    selected_task = session_state.get("selected_task")
     openai_api_key = session_state.get("chatbot_api_key")
+
     if not source:
         set_error(
             "Source selection cannot be empty. Please enter a valid source.",
             session_state,
         )
         return False
-    elif input_type == "url":
+
+    if selected_task.is_url:
         if not is_valid_url(source):
             set_error("Invalid URL format.", session_state)
-            return
+            return False
         if not url_exists(source):
             set_error("The URL does not exist.", session_state)
-            return
+            return False
         if not check_robots(source):
-            set_error("The robots.txt file not allow to parse the URL.", session_state)
-            return
+            set_error(
+                "The robots.txt file does not allow parsing the URL.", session_state
+            )
+            return False
     elif not openai_api_key:
         set_error("Please add your OpenAI API key to continue.", session_state)
-        return
+        return False
+
     return True
 
 
@@ -83,17 +87,23 @@ def scrape_and_process(session_state: dict, llm_config: LLMConfig) -> Rag:
     """Scrapes the given URL or PDF and processes the documents for question answering."""
     logging.info(f"Scraping: {session_state.get('source')}")
     logging.info(f"Using embedding model: {llm_config.embedding_model_name}")
-    if session_state.get("input_type") == "url":
-        scraper = UrlScraper(source=session_state.get("source"))
-    else:
-        uploaded_file = session_state.get("source")
-        file_path = save_uploaded_file(uploaded_file)
-        logging.info(f"File saved at: {file_path}")
-        scraper = PdfScraper(source=str(file_path))
+
+    selected_task = session_state.get("selected_task")
+    source = session_state.get("source")
+
+    if not selected_task.is_url:
+        uploaded_file = source
+        source = str(save_uploaded_file(uploaded_file))
+        logging.info(f"File saved at: {source}")
+
+    # Use factory to get the appropriate scraper
+    scraper = get_scraper(selected_task.id, source)
+
     documents = scraper.scrape()
     if not documents:
         logging.error("Scraper returned None for documents")
         raise PageScrapingError("Failed to scrape documents")
+
     rag_instance = SgRag(documents, llm_config)
 
     return rag_instance

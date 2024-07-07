@@ -44,7 +44,7 @@ class Rag(ABC):
     @abstractmethod
     def execute(self, prompt: str) -> str:
         """
-        Gets the user prompt and generate an LLM response vie retrieval documents.
+        Gets the user prompt and generate an LLM response via retrieval documents.
 
         Args:
             prompt str: The user prompt.
