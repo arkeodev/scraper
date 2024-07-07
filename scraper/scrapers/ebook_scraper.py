@@ -8,7 +8,7 @@ from typing import List
 from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import ParseNode
 
-from scraper.interfaces import Scraper
+from scraper.interface import Scraper
 from scraper.nodes.ebook import EbookNode
 
 
@@ -16,13 +16,13 @@ class EbookScraper(Scraper):
     def __init__(self, source: str) -> None:
         super().__init__(source)
         self._setup_graph()  # Set up the graph during initialization
-        self.input_key = "pdf" if source.endswith("pdf") else "pdf_dir"
+        self.input_key = "ebook"
 
     def _setup_graph(self):
         """
         Sets up the graph with the necessary nodes and configurations.
         """
-        self.fetch_node = EbookNode(
+        self.ebook_node = EbookNode(
             input="ebook",
             output=["doc"],
             node_config={
@@ -34,13 +34,13 @@ class EbookScraper(Scraper):
         self.parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
-            node_config={"parse_html": False, "chunk_size": 1024},
+            node_config={"parse_html": False, "chunk_size": 4096},
         )
 
         self.graph = BaseGraph(
-            nodes=[self.fetch_node, self.parse_node],
-            edges=[(self.fetch_node, self.parse_node)],
-            entry_point=self.fetch_node,
+            nodes=[self.ebook_node, self.parse_node],
+            edges=[(self.ebook_node, self.parse_node)],
+            entry_point=self.ebook_node,
         )
 
     def scrape(self) -> List[str]:
@@ -56,14 +56,12 @@ class EbookScraper(Scraper):
                 {"user_prompt": "", self.input_key: self.source}
             )
             # Get the parsed document from the result
-            docs = result.get("doc", [])
-            doc_list = [doc.page_content for doc in docs]
+            doc_list = result.get("doc", [])
             if doc_list:
-                logging.info(f"Total {len(doc_list)} documets.")
+                logging.info(f"Total {len(doc_list)} documents.")
             else:
                 logging.warning("No parsed document found.")
             return doc_list
-
         except Exception as e:
             logging.error(f"Error during scraping: {e}", exc_info=True)
             return []

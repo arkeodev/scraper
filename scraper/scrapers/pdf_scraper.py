@@ -33,7 +33,7 @@ class PdfScraper(Scraper):
         self.parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
-            node_config={"parse_html": False, "chunk_size": 1024},
+            node_config={"parse_html": False, "chunk_size": 4096},
         )
 
         self.graph = BaseGraph(
@@ -57,6 +57,8 @@ class PdfScraper(Scraper):
             # Get the parsed document from the result
             docs = result.get("doc", [])
             doc_list = [doc.page_content for doc in docs]
+            logging.info(doc_list[:10])
+            logging.info(len(doc_list))
             if doc_list:
                 logging.info(f"Total {len(doc_list)} documets.")
             else:

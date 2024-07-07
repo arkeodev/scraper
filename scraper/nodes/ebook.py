@@ -2,6 +2,7 @@
 E-book reader node
 """
 
+import logging
 from typing import List, Optional
 
 from scrapegraphai.nodes.base_node import BaseNode
@@ -69,8 +70,14 @@ class EbookNode(BaseNode):
         source = input_data[0]
         # Handling ebook
         if input_keys[0] == "ebook":
+            chunk_size = 4096
             parsed = parser.from_file(source)
-            compressed_document = parsed["content"]
+            content = parsed["content"]
+
+            # Split content into chunk-sized slices and store in a list
+            compressed_document = [
+                content[i : i + chunk_size] for i in range(0, len(content), chunk_size)
+            ]
             state.update({self.output[0]: compressed_document})
             return state
         else:
