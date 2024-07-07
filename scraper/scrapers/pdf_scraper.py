@@ -57,8 +57,6 @@ class PdfScraper(Scraper):
             # Get the parsed document from the result
             docs = result.get("doc", [])
             doc_list = [doc.page_content for doc in docs]
-            logging.info(doc_list[:10])
-            logging.info(len(doc_list))
             if doc_list:
                 logging.info(f"Total {len(doc_list)} documets.")
             else:
