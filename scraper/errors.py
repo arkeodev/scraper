@@ -27,12 +27,6 @@ class RobotsTxtError(BaseError):
     pass
 
 
-class CreateIndexError(BaseError):
-    """Raised when there is an error with index creation."""
-
-    pass
-
-
 class QueryError(BaseError):
     """Raised when there is an error with LLM query."""
 

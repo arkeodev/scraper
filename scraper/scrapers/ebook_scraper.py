@@ -1,28 +1,30 @@
 """
-URL Scraper module
+Ebook Scraper module
 """
 
 import logging
 from typing import List
 
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.nodes import FetchNode, ParseNode
+from scrapegraphai.nodes import ParseNode
 
-from scraper.interfaces import Scraper
+from scraper.interface import Scraper
+from scraper.nodes.ebook import EbookNode
 
 
-class UrlScraper(Scraper):
+class EbookScraper(Scraper):
     def __init__(self, source: str) -> None:
         super().__init__(source)
         self._setup_graph()  # Set up the graph during initialization
+        self.input_key = "ebook"
 
     def _setup_graph(self):
         """
         Sets up the graph with the necessary nodes and configurations.
         """
-        self.fetch_node = FetchNode(
-            input="url | local_dir",
-            output=["doc", "link_urls", "img_urls"],
+        self.ebook_node = EbookNode(
+            input="ebook",
+            output=["doc"],
             node_config={
                 "verbose": True,
                 "headless": True,
@@ -32,21 +34,18 @@ class UrlScraper(Scraper):
         self.parse_node = ParseNode(
             input="doc",
             output=["parsed_doc"],
-            node_config={
-                "chunk_size": 4096,
-                "verbose": True,
-            },
+            node_config={"parse_html": False, "chunk_size": 4096},
         )
 
         self.graph = BaseGraph(
-            nodes=[self.fetch_node, self.parse_node],
-            edges=[(self.fetch_node, self.parse_node)],
-            entry_point=self.fetch_node,
+            nodes=[self.ebook_node, self.parse_node],
+            edges=[(self.ebook_node, self.parse_node)],
+            entry_point=self.ebook_node,
         )
 
     def scrape(self) -> List[str]:
         """
-        Executes the graph to fetch and parse the document from a given URL.
+        Executes the graph to fetch and parse the document from a given PDF document.
 
         Returns:
             A list of parsed document segments or an empty list if an error occurs or if no data is parsed.
@@ -54,17 +53,15 @@ class UrlScraper(Scraper):
         try:
             # Execute the graph
             result, _ = self.graph.execute(
-                {"user_prompt": "Describe the content", "url": self.source}
+                {"user_prompt": "", self.input_key: self.source}
             )
-
             # Get the parsed document from the result
-            parsed_doc_list = result.get("parsed_doc", [])
-            if parsed_doc_list:
-                logging.info(f"Document size: {len(parsed_doc_list)} characters")
+            doc_list = result.get("doc", [])
+            if doc_list:
+                logging.info(f"Total {len(doc_list)} documents.")
             else:
                 logging.warning("No parsed document found.")
-            return parsed_doc_list
-
+            return doc_list
         except Exception as e:
             logging.error(f"Error during scraping: {e}", exc_info=True)
             return []

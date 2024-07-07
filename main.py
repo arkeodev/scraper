@@ -7,6 +7,7 @@ from typing import List
 import streamlit as st
 
 from scraper.app import initiate_scraping_process
+from scraper.config import tasks
 from scraper.logging import setup_logging
 
 
@@ -60,11 +61,8 @@ def display_title() -> None:
 def display_scraping_ui() -> None:
     """Display scraping interface."""
 
-    # Task selection using a select box
-    task_options = {
-        "Parse a URL": display_url_input,
-        "Parse PDF file(s)": display_file_uploader,
-    }
+    # Create a dictionary to map task definitions to task instances
+    task_options = {task.task_definition: task for task in tasks}
 
     task_selection = st.selectbox(
         "Select Task",
@@ -75,8 +73,14 @@ def display_scraping_ui() -> None:
         disabled=st.session_state.scraping_done,
     )
 
+    selected_task = task_options[task_selection]
+    st.session_state.selected_task = selected_task
+
     # Execute the corresponding function based on task selection
-    task_options[task_selection]()
+    if selected_task.is_url:
+        display_url_input()
+    else:
+        display_file_uploader(selected_task.allowed_extensions)
 
     # Display error messages if any
     if st.session_state.error_mes:
@@ -97,6 +101,15 @@ def display_scraping_ui() -> None:
         st.button("Refresh", key="refresh_button", on_click=trigger_refresh)
 
 
+def display_file_uploader(allowed_extensions: List[str]):
+    """Display file uploader for parsing files."""
+    st.session_state.source = st.file_uploader(
+        "Choose a file to parse",
+        type=allowed_extensions,
+        disabled=st.session_state.scraping_done,
+    )
+
+
 def display_url_input():
     """Display URL input field."""
     st.session_state.source = st.text_input(
@@ -105,17 +118,6 @@ def display_url_input():
         placeholder="http://example.com",
         disabled=st.session_state.scraping_done,
     )
-    st.session_state.input_type = "url"
-
-
-def display_file_uploader():
-    """Display file uploader for PDF files."""
-    st.session_state.source = st.file_uploader(
-        "Choose a PDF file to parse",
-        type=["pdf"],
-        disabled=st.session_state.scraping_done,
-    )
-    st.session_state.input_type = "pdf"
 
 
 def display_config_ui() -> None:

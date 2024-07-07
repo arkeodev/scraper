@@ -12,7 +12,7 @@ from scrapegraphai.nodes import GenerateAnswerNode, RAGNode
 
 from scraper.config import LLMConfig
 from scraper.errors import QueryError
-from scraper.interfaces import Rag
+from scraper.interface import Rag
 
 
 class SgRag(Rag):
@@ -62,6 +62,11 @@ class SgRag(Rag):
             nodes=[self.rag_node, self.generate_answer_node],
             edges=[(self.rag_node, self.generate_answer_node)],
             entry_point=self.rag_node,
+            use_burr=False,
+            burr_config={
+                "project_name": "universal-scraper",
+                "app_instance_id": "001",
+            },
         )
 
     def execute(self, prompt: str) -> Optional[str]:
@@ -80,6 +85,7 @@ class SgRag(Rag):
                 {"user_prompt": prompt, "doc": self.documents}
             )
             answer = result.get("answer", {})
+            logging.info(answer)
             if isinstance(answer, dict) and answer:
                 output = next(iter(answer.values()), None)
                 if output:

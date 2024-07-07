@@ -11,7 +11,22 @@ import trafilatura
 from readability import Document
 
 from scraper.errors import BrowserLaunchError, RobotsTxtError
+from scraper.interface import Scraper
 from scraper.robots import RobotsTxtChecker
+from scraper.scrapers.ebook_scraper import EbookScraper
+from scraper.scrapers.pdf_scraper import PdfScraper
+from scraper.scrapers.url_scraper import UrlScraper
+
+
+def get_scraper(task_id: int, source: str) -> Scraper:
+    if task_id == 1:  # Parse a URL
+        return UrlScraper(source)
+    elif task_id == 2:  # Parse PDF file(s)
+        return PdfScraper(source)
+    elif task_id == 3:  # Parse E-pub file(s)
+        return EbookScraper(source)
+    else:
+        raise ValueError("Invalid task ID")
 
 
 def get_prompt_template() -> str:
