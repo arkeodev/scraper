@@ -4,7 +4,7 @@ from typing import Dict, Type
 
 from langchain_openai import OpenAIEmbeddings
 from pydantic import BaseModel
-from scrapegraphai.models import OpenAI
+from scrapegraphai.models import Anthropic, OpenAI
 
 from scraper.config import LLMConfig, embedding_models_dict
 
@@ -68,8 +68,14 @@ class OllamaModelFactory(BaseModelFactory):
 
 class AnthropicModelFactory(BaseModelFactory):
     def create_llm(self, config: dict):
-        # Example: return AnthropicLLM(config)
-        pass
+        return Anthropic(
+            llm_config={
+                "model": config.get("model_name"),
+                "api_key": config.get("api_key"),
+                "max_tokens": config.get("max_tokens"),
+                "temperature": config.get("temperature"),
+            }
+        )
 
     def create_embedder(self, config: dict):
         # Example: return AnthropicEmbeddings(config)
@@ -100,6 +106,7 @@ def create_models(company_name: str, config: dict) -> ModelConfig:
     factory = factory_map[company_name]()
     llm = factory.create_llm(config)
     embedder = factory.create_embedder(config)
+    logging.info(embedder)
 
     return ModelConfig(llm=llm, embedder=embedder)
 
