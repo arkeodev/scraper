@@ -8,7 +8,7 @@ from typing import List
 from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import FetchNode, ParseNode
 
-from scraper.interface import Scraper
+from scraper.scrapers.scraper import Scraper
 
 
 class UrlScraper(Scraper):
@@ -60,7 +60,7 @@ class UrlScraper(Scraper):
             # Get the parsed document from the result
             parsed_doc_list = result.get("parsed_doc", [])
             if parsed_doc_list:
-                logging.info(f"Document size: {len(parsed_doc_list)} characters")
+                logging.info(f"Document size: {len(parsed_doc_list)} documents.")
             else:
                 logging.warning("No parsed document found.")
             return parsed_doc_list

@@ -6,7 +6,7 @@ from typing import List
 
 import streamlit as st
 
-from scraper.app import initiate_scraping_process
+from scraper.app import execute_scraping
 from scraper.config import tasks
 from scraper.logging import setup_logging
 
@@ -92,7 +92,7 @@ def display_scraping_ui() -> None:
     with start_col:
         st.button(
             "Start",
-            on_click=lambda: initiate_scraping_process(st.session_state),
+            on_click=lambda: execute_scraping(st.session_state),
             key="start_button",
             disabled=st.session_state.scraping_done,
         )
@@ -122,28 +122,60 @@ def display_url_input():
 
 def display_config_ui() -> None:
     """Display configuration options for the scraper."""
-    st.session_state.language = st.selectbox(
-        "Select the Language of the Web Site:",
-        options=("english", "turkish"),
-        placeholder="Select language...",
+    # st.session_state.language = st.selectbox(
+    #     "Select the Language of the Web Site:",
+    #     options=("english", "turkish"),
+    #     placeholder="Select language...",
+    #     index=0,
+    #     key="language_key",
+    #     disabled=st.session_state.scraping_done,
+    # )
+    st.session_state.model_company = st.selectbox(
+        "Select the Model Company:",
+        options=("OpenAI", "Groq", "Google", "Ollama", "Anthropic", "Hugging Face"),
+        placeholder="Select model company...",
         index=0,
-        key="language_key",
+        key="model_company_key",
         disabled=st.session_state.scraping_done,
     )
-    st.session_state.model_name = st.selectbox(
-        "Select the Model:",
-        options=("gpt-3.5-turbo", "gpt-4o", "gpt-4", "gpt-4-turbo"),
-        placeholder="Select model...",
-        index=0,
-        key="model_name_key",
-        disabled=st.session_state.scraping_done,
-    )
-    st.session_state.openai_key = st.text_input(
-        "OpenAI API Key",
-        key="chatbot_api_key",
-        type="password",
-        disabled=st.session_state.scraping_done,
-    )
+    # Load dynamic configuration options based on the selected company
+    load_model_specific_ui(st.session_state.model_company)
+
+
+def load_model_specific_ui(company_name: str):
+    """Load UI components based on model company."""
+    if company_name == "OpenAI":
+        st.session_state.model_name = st.selectbox(
+            "Select the Model:",
+            options=("gpt-3.5-turbo", "gpt-4o", "gpt-4", "gpt-4-turbo"),
+            placeholder="Select model...",
+            index=0,
+            key="model_name_key",
+            disabled=st.session_state.scraping_done,
+        )
+        st.session_state.api_key = st.text_input(
+            "OpenAI API Key",
+            type="password",
+            key="chatbot_api_key",
+            disabled=st.session_state.scraping_done,
+        )
+    elif company_name == "Anthropic":
+        st.session_state.model_name = st.selectbox(
+            "Select the Model:",
+            options=("claude-3-haiku-20240307", "claude-3-5-sonnet-20240620"),
+            placeholder="Select model...",
+            index=0,
+            key="model_name_key",
+            disabled=st.session_state.scraping_done,
+        )
+        st.session_state.api_key = st.text_input(
+            "Antrophic API Key",
+            type="password",
+            key="chatbot_api_key",
+            disabled=st.session_state.scraping_done,
+        )
+    # Continue for other companies
+
     st.session_state.temperature = st.slider(
         "Temperature",
         0.0,

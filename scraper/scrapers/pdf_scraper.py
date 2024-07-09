@@ -8,7 +8,7 @@ from typing import List
 from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import FetchNode, ParseNode
 
-from scraper.interface import Scraper
+from scraper.scrapers.scraper import Scraper
 
 
 class PdfScraper(Scraper):

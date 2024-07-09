@@ -5,39 +5,29 @@ Module for handling question-answering functionality using ScrapeGraphAI.
 import logging
 from typing import List, Optional
 
-from langchain_openai import OpenAIEmbeddings
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.models import OpenAI
 from scrapegraphai.nodes import GenerateAnswerNode, RAGNode
 
-from scraper.config import LLMConfig
 from scraper.errors import QueryError
-from scraper.interface import Rag
 
 
-class SgRag(Rag):
+class SgRag:
     """
     Handles the Retrieval-Augmented Generation (RAG) functionality for question answering.
     """
 
-    def __init__(self, documents: List[str], model_config: LLMConfig):
+    def __init__(self, documents: List[str], llm, embed_model):
         """
         Initializes the QuestionAnswering instance with a list of documents and model configurations.
 
         Args:
             documents: A list of documents as strings.
-            model_config: Model configuration parameters.
+            llm: llm model.
+            embed_model: embedding model.
         """
         self.documents = documents
-        self.embed_model = OpenAIEmbeddings(api_key=model_config.api_key)
-        self.llm = OpenAI(
-            llm_config={
-                "model_name": model_config.llm_model_name,
-                "openai_api_key": model_config.api_key,
-                "max_tokens": model_config.max_tokens,
-                "temperature": model_config.temperature,
-            }
-        )
+        self.embed_model = embed_model
+        self.llm = llm
         self._setup_graph()
 
     def _setup_graph(self):

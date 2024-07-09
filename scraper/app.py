@@ -4,11 +4,11 @@ Application main logic
 
 import logging
 from pathlib import Path
+from typing import List
 
-from scraper.config import LLMConfig, embedding_models_dict
 from scraper.errors import PageScrapingError
-from scraper.interface import Rag
-from scraper.qa import SgRag
+from scraper.models import configure_llm, create_models
+from scraper.rag import SgRag
 from scraper.utils import (
     check_robots,
     get_scraper,
@@ -16,21 +16,6 @@ from scraper.utils import (
     is_valid_url,
     url_exists,
 )
-
-
-def initiate_scraping_process(session_state):
-    """Begins the scraping task after performing necessary validations."""
-    if not validate_input(session_state):
-        return
-
-    try:
-        setup_dependencies()
-        llm_config = configure_llm(session_state)
-        process_and_update_state(
-            scrape_and_process(session_state, llm_config), session_state
-        )
-    except Exception as e:
-        handle_error(e, session_state)
 
 
 def validate_input(session_state) -> bool:
@@ -65,28 +50,32 @@ def validate_input(session_state) -> bool:
     return True
 
 
+def execute_scraping(session_state: dict) -> None:
+    """Executes all process after performing necessary validations."""
+    if not validate_input(session_state):
+        return
+
+    try:
+        setup_dependencies()
+        documents = scrape(session_state)
+        llm_config = configure_llm(session_state)
+        model_config = create_models(
+            session_state["model_company"], llm_config.model_dump()
+        )
+        rag_object = rag(documents, model_config.llm, model_config.embedder)
+        process_and_update_state(rag_object, session_state)
+    except Exception as e:
+        handle_error(e, session_state)
+
+
 def setup_dependencies():
     """Ensure all external dependencies are set up."""
     install_playwright_chromium()
 
 
-def configure_llm(session_state) -> LLMConfig:
-    """Configure and return the LLM configuration settings."""
-    return LLMConfig(
-        llm_model_name=session_state.get("model_name_key"),
-        embedding_model_name=embedding_models_dict.get(
-            session_state.get("language_key", "english")
-        ),
-        api_key=session_state.get("openai_key"),
-        temperature=session_state.get("temperature_key"),
-        max_tokens=session_state.get("max_tokens_key"),
-    )
-
-
-def scrape_and_process(session_state: dict, llm_config: LLMConfig) -> Rag:
+def scrape(session_state: dict) -> List[str]:
     """Scrapes the given URL or PDF and processes the documents for question answering."""
     logging.info(f"Scraping: {session_state.get('source')}")
-    logging.info(f"Using embedding model: {llm_config.embedding_model_name}")
 
     selected_task = session_state.get("selected_task")
     source = session_state.get("source")
@@ -104,12 +93,18 @@ def scrape_and_process(session_state: dict, llm_config: LLMConfig) -> Rag:
         logging.error("Scraper returned None for documents")
         raise PageScrapingError("Failed to scrape documents")
 
-    rag_instance = SgRag(documents, llm_config)
+    return documents
+
+
+def rag(documents: List[str], llm, embedder) -> SgRag:
+    """Gets the documents and processes them to prepare for question answering."""
+    logging.info(f"Rag process...")
+    rag_instance = SgRag(documents, llm, embedder)
 
     return rag_instance
 
 
-def process_and_update_state(rag_instance, session_state):
+def process_and_update_state(rag_instance: SgRag, session_state: dict) -> None:
     """Update the session state with results from the scraping."""
     session_state.update(
         {
@@ -143,13 +138,13 @@ def save_uploaded_file(uploaded_file, save_dir="/tmp"):
     return file_path
 
 
-def handle_error(exception, session_state):
+def handle_error(exception: Exception, session_state: dict):
     """Handle exceptions and update session state with error message."""
     error_message = f"An error occurred: {exception}"
     logging.error(error_message, exc_info=True)
     set_error(error_message, session_state)
 
 
-def set_error(message: str, session_state) -> None:
+def set_error(message: str, session_state: dict) -> None:
     """Helper function to set the session state error message."""
     session_state["error_mes"] = message

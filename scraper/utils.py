@@ -11,11 +11,9 @@ import trafilatura
 from readability import Document
 
 from scraper.errors import BrowserLaunchError, RobotsTxtError
-from scraper.interface import Scraper
-from scraper.robots import RobotsTxtChecker
-from scraper.scrapers.ebook_scraper import EbookScraper
-from scraper.scrapers.pdf_scraper import PdfScraper
-from scraper.scrapers.url_scraper import UrlScraper
+from scraper.scrapers import EbookScraper, PdfScraper, UrlScraper
+from scraper.scrapers.robots import RobotsTxtChecker
+from scraper.scrapers.scraper import Scraper
 
 
 def get_scraper(task_id: int, source: str) -> Scraper:

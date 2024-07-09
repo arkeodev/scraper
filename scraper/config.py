@@ -29,12 +29,12 @@ tasks = [
 # Matches the embedding model names with the language
 embedding_models_dict = {
     "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
-    "english": "BAAI/bge-small-en-v1.5",
+    "english": "text-embedding-ada-002",
 }
 
 
 class LLMConfig(BaseModel):
-    llm_model_name: str
+    model_name: str
     api_key: str = None
     embedding_model_name: str
     temperature: Optional[float] = Field(0.7, ge=0.0, le=1.0)
