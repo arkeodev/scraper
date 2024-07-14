@@ -28,7 +28,6 @@ tasks = [
 
 # Matches the embedding model names with the language
 embedding_models_dict = {
-    "Google": "models/embedding-001",
     "OpenAI": "text-embedding-ada-002",
 }
 

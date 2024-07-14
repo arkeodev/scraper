@@ -132,7 +132,7 @@ def display_config_ui() -> None:
     # )
     st.session_state.model_company = st.selectbox(
         "Select the Model Company:",
-        options=("OpenAI", "Groq", "Google", "Ollama", "Anthropic", "Hugging Face"),
+        options=("OpenAI", "Groq", "Anthropic", "Hugging Face"),
         placeholder="Select model company...",
         index=0,
         key="model_company_key",
@@ -170,21 +170,6 @@ def load_model_specific_ui(company_name: str):
         )
         st.session_state.api_key = st.text_input(
             "Antrophic API Key",
-            type="password",
-            key="chatbot_api_key",
-            disabled=st.session_state.scraping_done,
-        )
-    elif company_name == "Google":
-        st.session_state.model_name = st.selectbox(
-            "Select the Model:",
-            options=("gemini-pro", "gemini-1.5-pro"),
-            placeholder="Select model...",
-            index=0,
-            key="model_name_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.session_state.api_key = st.text_input(
-            "Google API Key",
             type="password",
             key="chatbot_api_key",
             disabled=st.session_state.scraping_done,
@@ -228,7 +213,6 @@ def load_model_specific_ui(company_name: str):
             key="chatbot_api_key",
             disabled=st.session_state.scraping_done,
         )
-    # Continue for other companies
 
     st.session_state.temperature = st.slider(
         "Temperature",

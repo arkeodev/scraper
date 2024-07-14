@@ -2,14 +2,10 @@ from collections import namedtuple
 from typing import Dict, Type
 
 from langchain.embeddings.base import Embeddings
-from langchain.vectorstores import FAISS
-from langchain_anthropic import ChatAnthropic
-from langchain_community.embeddings import OllamaEmbeddings
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_huggingface import HuggingFaceEndpoint
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from scrapegraphai.models import Anthropic, Gemini, Groq, OpenAI
+from scrapegraphai.models import Anthropic, Groq, OpenAI
 from sentence_transformers import SentenceTransformer
 
 from scraper.config import LLMConfig, embedding_models_dict
@@ -57,34 +53,6 @@ class GroqModelFactory(BaseModelFactory):
         return SentenceTransformerEmbeddings()
 
 
-class GoogleModelFactory(BaseModelFactory):
-    def create_llm(self, config: dict):
-        return Gemini(
-            llm_config={
-                "model": config.get("model_name"),
-                "api_key": config.get("api_key"),
-                "max_tokens": config.get("max_tokens"),
-                "temperature": config.get("temperature"),
-                "streaming": True,
-            }
-        )
-
-    def create_embedder(self, config: dict):
-        return GoogleGenerativeAIEmbeddings(
-            google_api_key=config["api_key"], model="models/embedding-001"
-        )
-
-
-class OllamaModelFactory(BaseModelFactory):
-    def create_llm(self, config: dict):
-        # Example: return OllamaLLM(config)
-        pass
-
-    def create_embedder(self, config: dict):
-        # Example: return OllamaEmbeddings(config)
-        pass
-
-
 class AnthropicModelFactory(BaseModelFactory):
     def create_llm(self, config: dict):
         return Anthropic(
@@ -118,8 +86,6 @@ class HuggingFaceModelFactory(BaseModelFactory):
 factory_map: Dict[str, Type[BaseModelFactory]] = {
     "OpenAI": OpenAIModelFactory,
     "Groq": GroqModelFactory,
-    "Google": GoogleModelFactory,
-    "Ollama": OllamaModelFactory,
     "Anthropic": AnthropicModelFactory,
     "Hugging Face": HuggingFaceModelFactory,
 }
