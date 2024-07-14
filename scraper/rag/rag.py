@@ -6,9 +6,10 @@ import logging
 from typing import List, Optional
 
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.nodes import GenerateAnswerNode, RAGNode
+from scrapegraphai.nodes import GenerateAnswerNode
 
 from scraper.errors import QueryError
+from scraper.nodes.rag_node import RAGNode
 
 
 class SgRag:
@@ -52,7 +53,7 @@ class SgRag:
             nodes=[self.rag_node, self.generate_answer_node],
             edges=[(self.rag_node, self.generate_answer_node)],
             entry_point=self.rag_node,
-            use_burr=False,
+            use_burr=True,
             burr_config={
                 "project_name": "universal-scraper",
                 "app_instance_id": "001",

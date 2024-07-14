@@ -76,7 +76,9 @@ class EbookNode(BaseNode):
 
             # Split content into chunk-sized slices and store in a list
             compressed_document = [
-                content[i : i + chunk_size] for i in range(0, len(content), chunk_size)
+                content[i : i + chunk_size]
+                for i in range(0, len(content), chunk_size)
+                if content[i : i + chunk_size]
             ]
             state.update({self.output[0]: compressed_document})
             return state

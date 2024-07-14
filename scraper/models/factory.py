@@ -2,9 +2,12 @@ import logging
 from collections import namedtuple
 from typing import Dict, Type
 
+from langchain_community.embeddings import OllamaEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_huggingface import HuggingFaceEndpoint
+from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from pydantic import BaseModel
-from scrapegraphai.models import Anthropic, OpenAI
+from scrapegraphai.models import Anthropic, Gemini, Groq, OpenAI
 
 from scraper.config import LLMConfig, embedding_models_dict
 
@@ -38,22 +41,34 @@ class OpenAIModelFactory(BaseModelFactory):
 
 class GroqModelFactory(BaseModelFactory):
     def create_llm(self, config: dict):
-        # Example: return GroqLLM(config)
-        pass
+        return Groq(
+            llm_config={
+                "model": config.get("model_name"),
+                "api_key": config.get("api_key"),
+                "max_tokens": config.get("max_tokens"),
+                "temperature": config.get("temperature"),
+            }
+        )
 
     def create_embedder(self, config: dict):
-        # Example: return GroqEmbeddings(config)
-        pass
+        return OllamaEmbeddings()
 
 
 class GoogleModelFactory(BaseModelFactory):
     def create_llm(self, config: dict):
-        # Example: return GoogleLLM(config)
-        pass
+        return Gemini(
+            llm_config={
+                "model": config.get("model_name"),
+                "api_key": config.get("api_key"),
+                "max_tokens": config.get("max_tokens"),
+                "temperature": config.get("temperature"),
+            }
+        )
 
     def create_embedder(self, config: dict):
-        # Example: return GoogleEmbeddings(config)
-        pass
+        return GoogleGenerativeAIEmbeddings(
+            google_api_key=config["api_key"], model="models/embedding-001"
+        )
 
 
 class OllamaModelFactory(BaseModelFactory):
@@ -78,18 +93,22 @@ class AnthropicModelFactory(BaseModelFactory):
         )
 
     def create_embedder(self, config: dict):
-        # Example: return AnthropicEmbeddings(config)
-        pass
+        return None
 
 
 class HuggingFaceModelFactory(BaseModelFactory):
     def create_llm(self, config: dict):
-        # Example: return HuggingFaceLLM(config)
-        pass
+        return HuggingFaceEndpoint(
+            repo_id=config.get("model_name"),
+            max_new_tokens=config.get("max_tokens"),
+            temperature=config.get("temperature"),
+            huggingfacehub_api_token=config.get("api_key"),
+        )
 
     def create_embedder(self, config: dict):
-        # Example: return HuggingFaceEmbeddings(config)
-        pass
+        return HuggingFaceEmbeddings(
+            model_name=config["embedding_model_name"],
+        )
 
 
 factory_map: Dict[str, Type[BaseModelFactory]] = {
@@ -113,12 +132,11 @@ def create_models(company_name: str, config: dict) -> ModelConfig:
 
 def configure_llm(session_state: dict) -> LLMConfig:
     """Configure and return the LLM configuration settings."""
-
     return LLMConfig(
         model_name=session_state.get("model_name_key"),
         api_key=session_state.get("chatbot_api_key"),
         embedding_model_name=embedding_models_dict.get(
-            session_state.get("language_key", "english")
+            session_state.get("model_company", None)
         ),
         temperature=session_state.get("temperature_key"),
         max_tokens=session_state.get("max_tokens_key"),

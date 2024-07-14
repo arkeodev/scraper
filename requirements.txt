@@ -8,8 +8,13 @@ readability-lxml==0.8.1
 trafilatura==1.10.0
 PyPDF2==3.0.1
 tenacity==8.2.3
-langchain==0.1.15
+langchain==0.2.7
 langchain-openai==0.1.6
+langchain-groq==0.1.6
+langchain-anthropic==0.1.19
+langchain-google-genai==1.0.7
+langchain-huggingface==0.0.3
+faiss-cpu==1.8.0.post1
 tika==2.6.0
 pytest==8.2.2
 black==24.4.2

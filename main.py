@@ -174,6 +174,61 @@ def load_model_specific_ui(company_name: str):
             key="chatbot_api_key",
             disabled=st.session_state.scraping_done,
         )
+    elif company_name == "Google":
+        st.session_state.model_name = st.selectbox(
+            "Select the Model:",
+            options=("gemini-pro", "gemini-1.5-pro"),
+            placeholder="Select model...",
+            index=0,
+            key="model_name_key",
+            disabled=st.session_state.scraping_done,
+        )
+        st.session_state.api_key = st.text_input(
+            "Google API Key",
+            type="password",
+            key="chatbot_api_key",
+            disabled=st.session_state.scraping_done,
+        )
+    elif company_name == "Groq":
+        st.session_state.model_name = st.selectbox(
+            "Select the Model:",
+            options=(
+                "llama3-8b-8192",
+                "llama3-70b-8192",
+                "mixtral-8x7b-32768",
+                "gemma-7b-it",
+                "gemma2-9b-it",
+            ),
+            placeholder="Select model...",
+            index=0,
+            key="model_name_key",
+            disabled=st.session_state.scraping_done,
+        )
+        st.session_state.api_key = st.text_input(
+            "Groq API Key",
+            type="password",
+            key="chatbot_api_key",
+            disabled=st.session_state.scraping_done,
+        )
+    elif company_name == "Hugging Face":
+        st.session_state.model_name = st.selectbox(
+            "Select the Model:",
+            options=(
+                "mistralai/Mistral-7B-Instruct-v0.3",
+                "meta-llama/Meta-Llama-3-70B-Instruct",
+                "meta-llama/Meta-Llama-3-8B-Instruct",
+            ),
+            placeholder="Select model...",
+            index=0,
+            key="model_name_key",
+            disabled=st.session_state.scraping_done,
+        )
+        st.session_state.api_key = st.text_input(
+            "Hugging Face API Key",
+            type="password",
+            key="chatbot_api_key",
+            disabled=st.session_state.scraping_done,
+        )
     # Continue for other companies
 
     st.session_state.temperature = st.slider(
@@ -230,9 +285,9 @@ def initialize_session_state() -> None:
     """Initialize session state variables if not already set."""
     session_defaults = {
         "url": "",
-        "chatbot_api_key": "",
+        "model_company_key": "OpenAI",
         "model_name_key": "gpt-3.5-turbo",
-        "language_key": "english",
+        "chatbot_api_key": "",
         "task_key": "Parse a URL",
         "temperature_key": 0.7,
         "max_tokens_key": 1000,
@@ -255,11 +310,11 @@ def clear_state() -> None:
         del st.session_state[key]
     st.session_state.status = []
     st.session_state.url_input = ""
-    st.session_state.chatbot_api_key = ""
     st.session_state.question_input = ""
     st.session_state.chat_history = []
+    st.session_state.model_company_key = "OpenAI"
     st.session_state.model_name_key = "gpt-3.5-turbo"
-    st.session_state.language_key = "english"
+    st.session_state.chatbot_api_key = ""
     st.session_state.task_key = "Parse a URL"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000

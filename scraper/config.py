@@ -28,8 +28,11 @@ tasks = [
 
 # Matches the embedding model names with the language
 embedding_models_dict = {
-    "turkish": "emrecan/bert-base-turkish-cased-mean-nli-stsb-tr",
-    "english": "text-embedding-ada-002",
+    "Google": "models/embedding-001",
+    "OpenAI": "text-embedding-ada-002",
+    "Anthropic": "",
+    "Groq": "",
+    "Hugging Face": "sentence-transformers/all-MiniLM-l6-v2",
 }
 
 
