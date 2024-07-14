@@ -8,8 +8,8 @@ from typing import List
 from scrapegraphai.graphs import BaseGraph
 from scrapegraphai.nodes import ParseNode
 
-from scraper.interface import Scraper
-from scraper.nodes.ebook import EbookNode
+from scraper.nodes import EbookNode
+from scraper.scrapers.scraper import Scraper
 
 
 class EbookScraper(Scraper):

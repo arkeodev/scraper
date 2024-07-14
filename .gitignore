@@ -175,3 +175,6 @@ volumes/
 
 # streamlit files
 .streamlit/secrets.toml
+
+# VS Code
+.vscode/
