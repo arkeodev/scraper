@@ -215,7 +215,6 @@ def load_model_specific_ui(company_name: str):
             "Select the Model:",
             options=(
                 "mistralai/Mistral-7B-Instruct-v0.3",
-                "meta-llama/Meta-Llama-3-70B-Instruct",
                 "meta-llama/Meta-Llama-3-8B-Instruct",
             ),
             placeholder="Select model...",

@@ -3,7 +3,6 @@ RAGNode Module
 """
 
 import logging
-import os
 from typing import List, Optional
 
 from langchain.docstore.document import Document
@@ -97,31 +96,10 @@ class RAGNode(BaseNode):
         self.embedder_model = (
             self.embedder_model if self.embedder_model else self.llm_model
         )
-        logging.info(self.embedder_model)
         embeddings = self.embedder_model
+        logging.info(f"Embedder model is: {embeddings}")
 
-        folder_name = self.node_config.get("cache_path", "cache")
-
-        if self.node_config.get("cache_path", False) and not os.path.exists(
-            folder_name
-        ):
-            index = FAISS.from_documents(chunked_docs, embeddings)
-            os.makedirs(folder_name)
-            index.save_local(folder_name)
-            logging.info("--- (indexes saved to cache) ---")
-
-        elif self.node_config.get("cache_path", False) and os.path.exists(folder_name):
-            index = FAISS.load_local(
-                folder_path=folder_name,
-                embeddings=embeddings,
-                allow_dangerous_deserialization=True,
-            )
-            logging.info("--- (indexes loaded from cache) ---")
-
-        else:
-            logging.info(type(embeddings))
-            index = FAISS.from_documents(chunked_docs, embeddings)
-
+        index = FAISS.from_documents(chunked_docs, embeddings)
         retriever = index.as_retriever()
 
         redundant_filter = EmbeddingsRedundantFilter(embeddings=embeddings)

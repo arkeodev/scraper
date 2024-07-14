@@ -1,13 +1,16 @@
-import logging
 from collections import namedtuple
 from typing import Dict, Type
 
+from langchain.embeddings.base import Embeddings
+from langchain.vectorstores import FAISS
+from langchain_anthropic import ChatAnthropic
 from langchain_community.embeddings import OllamaEmbeddings
 from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from langchain_huggingface import HuggingFaceEndpoint
 from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
 from scrapegraphai.models import Anthropic, Gemini, Groq, OpenAI
+from sentence_transformers import SentenceTransformer
 
 from scraper.config import LLMConfig, embedding_models_dict
 
@@ -51,7 +54,7 @@ class GroqModelFactory(BaseModelFactory):
         )
 
     def create_embedder(self, config: dict):
-        return OllamaEmbeddings()
+        return SentenceTransformerEmbeddings()
 
 
 class GoogleModelFactory(BaseModelFactory):
@@ -62,6 +65,7 @@ class GoogleModelFactory(BaseModelFactory):
                 "api_key": config.get("api_key"),
                 "max_tokens": config.get("max_tokens"),
                 "temperature": config.get("temperature"),
+                "streaming": True,
             }
         )
 
@@ -86,14 +90,14 @@ class AnthropicModelFactory(BaseModelFactory):
         return Anthropic(
             llm_config={
                 "model": config.get("model_name"),
-                "api_key": config.get("api_key"),
+                "anthropic_api_key": config.get("api_key"),
                 "max_tokens": config.get("max_tokens"),
                 "temperature": config.get("temperature"),
             }
         )
 
     def create_embedder(self, config: dict):
-        return None
+        return SentenceTransformerEmbeddings()
 
 
 class HuggingFaceModelFactory(BaseModelFactory):
@@ -125,7 +129,6 @@ def create_models(company_name: str, config: dict) -> ModelConfig:
     factory = factory_map[company_name]()
     llm = factory.create_llm(config)
     embedder = factory.create_embedder(config)
-    logging.info(embedder)
 
     return ModelConfig(llm=llm, embedder=embedder)
 
@@ -136,8 +139,19 @@ def configure_llm(session_state: dict) -> LLMConfig:
         model_name=session_state.get("model_name_key"),
         api_key=session_state.get("chatbot_api_key"),
         embedding_model_name=embedding_models_dict.get(
-            session_state.get("model_company", None)
+            session_state.get("model_company", None), ""
         ),
         temperature=session_state.get("temperature_key"),
         max_tokens=session_state.get("max_tokens_key"),
     )
+
+
+class SentenceTransformerEmbeddings(Embeddings):
+    def __init__(self, model_name="all-MiniLM-L6-v2"):
+        self.model = SentenceTransformer(model_name)
+
+    def embed_documents(self, texts):
+        return self.model.encode(texts, convert_to_tensor=False).tolist()
+
+    def embed_query(self, query):
+        return self.model.encode([query], convert_to_tensor=False)[0].tolist()
