@@ -79,7 +79,7 @@ def generate_dynamic_instruction(content_format: str) -> str:
         return "Handle the content as plain text. Focus on extracting coherent and contextually relevant information directly from the text."
 
 
-def get_merging_prompt_template() -> str:
+def get_merging_prompt_template(content_source: str) -> str:
     """
     Returns a template for merging answers from multiple chunks into a single, coherent answer.
     This template is designed to ensure that the merged answer is free from repetitions,
@@ -89,7 +89,7 @@ def get_merging_prompt_template() -> str:
         str: The merging prompt template.
     """
 
-    merging_template = """
+    merging_template = f"""
         You are a universal scraper who has processed multiple content chunks from {content_source}. You are tasked with merging these inputs into a single, coherent response.
         Ensure the merged answer:
         - Contains no repetitions or irrelevant information.
@@ -97,9 +97,9 @@ def get_merging_prompt_template() -> str:
         - Is formatted correctly in JSON and is error-free.
         Use the collected information to answer the user's question based on the entirety of the scraped content.
 
-        Output instructions: {format_instructions}
-        User question: {question}
-        Combined content from multiple chunks: {context}
+        Output instructions: {{format_instructions}}
+        User question: {{question}}
+        Combined content from multiple chunks: {{context}}
     """
     return merging_template
 

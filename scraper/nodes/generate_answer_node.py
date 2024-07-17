@@ -97,7 +97,7 @@ class GenerateAnswerNode(BaseNode):
             )
             # Merge results with another LLM prompt
             merge_prompt = PromptTemplate(
-                template=get_merging_prompt_template(),
+                template=get_merging_prompt_template(self.content_source),
                 input_variables=["context", "question"],
                 partial_variables={"format_instructions": format_instructions},
             )
