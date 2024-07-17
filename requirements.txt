@@ -2,7 +2,7 @@ streamlit==1.36.0
 requests==2.32.3
 beautifulsoup4==4.12.3
 playwright==1.43.0
-scrapegraphai==1.8.0
+scrapegraphai==1.9.1
 burr==0.23.0
 readability-lxml==0.8.1
 trafilatura==1.10.0
