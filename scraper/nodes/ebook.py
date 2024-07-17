@@ -40,9 +40,6 @@ class EbookNode(BaseNode):
         self.verbose = (
             False if node_config is None else node_config.get("verbose", False)
         )
-        self.useSoup = (
-            False if node_config is None else node_config.get("useSoup", False)
-        )
         self.loader_kwargs = (
             {} if node_config is None else node_config.get("loader_kwargs", {})
         )
@@ -60,7 +57,7 @@ class EbookNode(BaseNode):
             dict: The updated state with a new output key containing the fetched e-book content.
         """
 
-        self.logger.info(f"--- Executing {self.node_name} Node ---")
+        logging.info(f"Executing {self.node_name} Node")
 
         # Interpret input keys based on the provided input expression
         input_keys = self.get_input_keys(state)

@@ -62,7 +62,12 @@ def execute_scraping(session_state: dict) -> None:
         model_config = create_models(
             session_state["model_company"], llm_config.model_dump()
         )
-        rag_object = rag(documents, model_config.llm, model_config.embedder)
+        rag_object = rag(
+            documents,
+            model_config.llm,
+            model_config.embedder,
+            session_state["selected_task"].content_source,
+        )
         process_and_update_state(rag_object, session_state)
     except Exception as e:
         handle_error(e, session_state)
@@ -96,10 +101,10 @@ def scrape(session_state: dict) -> List[str]:
     return documents
 
 
-def rag(documents: List[str], llm, embedder) -> SgRag:
+def rag(documents: List[str], llm, embedder, content_source) -> SgRag:
     """Gets the documents and processes them to prepare for question answering."""
     logging.info(f"Rag process...")
-    rag_instance = SgRag(documents, llm, embedder)
+    rag_instance = SgRag(documents, llm, embedder, content_source)
 
     return rag_instance
 
