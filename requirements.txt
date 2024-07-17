@@ -14,7 +14,7 @@ langchain-groq==0.1.6
 langchain-anthropic==0.1.19
 langchain-google-genai==1.0.7
 langchain-huggingface==0.0.3
-faiss-cpu==1.8.0.post1
+faiss-cpu==1.8.0
 tika==2.6.0
 pytest==8.2.2
 black==24.4.2
