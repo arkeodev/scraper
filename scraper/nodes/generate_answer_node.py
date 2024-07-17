@@ -1,7 +1,9 @@
 import logging
 from typing import List, Optional
 
+from langchain.output_parsers import OutputFixingParser
 from langchain.prompts import PromptTemplate
+from langchain.schema import OutputParserException
 from langchain_core.documents import Document
 from langchain_core.output_parsers import JsonOutputParser
 from langchain_core.runnables import RunnableParallel
@@ -44,66 +46,64 @@ class GenerateAnswerNode(BaseNode):
             self.content_source, content_format, single_chunk
         )
 
-        if len(doc) == 1:
-            # Handling single chunk of content
-            prompt = PromptTemplate(
-                template=prompt_template,
-                input_variables=[
-                    "question",
-                    "dynamic_instruction",
-                    "format_instructions",
-                    "context",
-                    "content_source",
-                ],
-                partial_variables={
-                    "context": doc[0].page_content,
-                    "question": user_prompt,
-                    "format_instructions": format_instructions,
-                    "dynamic_instruction": "This is a single chunk of content.",
-                    "content_source": self.content_source,
-                },
-            )
-            answer = (prompt | self.llm_model | output_parser).invoke(
-                {"question": user_prompt}
-            )
-        else:
-            # Handling multiple chunks
-            chains_dict = {}
-            for i, chunk in enumerate(
-                tqdm(doc, desc="Processing chunks", disable=not self.verbose)
-            ):
+        try:
+            if len(doc) == 1:
+                # Handling single chunk of content
                 prompt = PromptTemplate(
                     template=prompt_template,
                     input_variables=[
                         "question",
-                        "dynamic_instruction",
                         "format_instructions",
                         "context",
-                        "content_source",
                     ],
                     partial_variables={
-                        "context": chunk.page_content,
+                        "context": doc[0].page_content,
                         "question": user_prompt,
                         "format_instructions": format_instructions,
-                        "dynamic_instruction": f"Chunk {i + 1} of multiple chunks.",
-                        "content_source": self.content_source,
                     },
                 )
-                chain_name = f"chunk{i+1}"
-                chains_dict[chain_name] = prompt | self.llm_model | output_parser
-            # Collect results
-            parallel_results = RunnableParallel(**chains_dict).invoke(
-                {"question": user_prompt}
+                answer = (prompt | self.llm_model | output_parser).invoke(
+                    {"question": user_prompt}
+                )
+            else:
+                # Handling multiple chunks
+                chains_dict = {}
+                for i, chunk in enumerate(
+                    tqdm(doc, desc="Processing chunks", disable=not self.verbose)
+                ):
+                    prompt = PromptTemplate(
+                        template=prompt_template,
+                        input_variables=[
+                            "question",
+                            "format_instructions",
+                            "context",
+                        ],
+                        partial_variables={
+                            "context": chunk.page_content,
+                            "question": user_prompt,
+                            "format_instructions": format_instructions,
+                        },
+                    )
+                    chain_name = f"chunk{i+1}"
+                    chains_dict[chain_name] = prompt | self.llm_model | output_parser
+                # Collect results
+                parallel_results = RunnableParallel(**chains_dict).invoke(
+                    {"question": user_prompt}
+                )
+                # Merge results with another LLM prompt
+                merge_prompt = PromptTemplate(
+                    template=get_merging_prompt_template(self.content_source),
+                    input_variables=["context", "question"],
+                    partial_variables={"format_instructions": format_instructions},
+                )
+                answer = (merge_prompt | self.llm_model | output_parser).invoke(
+                    {"context": parallel_results, "question": user_prompt}
+                )
+        except OutputParserException:
+            fixing_parser = OutputFixingParser.from_llm(
+                parser=output_parser, llm=self.llm_model
             )
-            # Merge results with another LLM prompt
-            merge_prompt = PromptTemplate(
-                template=get_merging_prompt_template(self.content_source),
-                input_variables=["context", "question"],
-                partial_variables={"format_instructions": format_instructions},
-            )
-            answer = (merge_prompt | self.llm_model | output_parser).invoke(
-                {"context": parallel_results, "question": user_prompt}
-            )
+            answer = fixing_parser.parse(answer)
 
         state.update({self.output[0]: answer})
         return state
