@@ -62,19 +62,30 @@ def display_scraping_ui() -> None:
     """Display scraping interface."""
 
     # Create a dictionary to map task definitions to task instances
-    task_options = {task.task_definition: task for task in tasks}
+    source_options = {task.source_def: task for task in tasks}
 
-    task_selection = st.selectbox(
-        "Select Task",
-        options=list(task_options.keys()),
-        placeholder="Select task...",
+    source_selection = st.selectbox(
+        "Select Source",
+        options=list(source_options.keys()),
+        placeholder="Select source...",
         index=0,
-        key="task_key",
+        key="source_key",
         disabled=st.session_state.scraping_done,
     )
 
-    selected_task = task_options[task_selection]
+    selected_task = source_options[source_selection]
     st.session_state.selected_task = selected_task
+
+    task_options = {task.task_def: task for task in tasks}
+
+    source_selection = st.selectbox(
+        "Select Task",
+        options=task_options.keys(),
+        placeholder="Select task...",
+        index=0,
+        key="task_key",
+        disabled=True,
+    )
 
     # Execute the corresponding function based on task selection
     if selected_task.is_url:
@@ -147,7 +158,7 @@ def load_model_specific_ui(company_name: str):
     if company_name == "OpenAI":
         st.session_state.model_name = st.selectbox(
             "Select the Model:",
-            options=("gpt-3.5-turbo", "gpt-4o", "gpt-4", "gpt-4-turbo"),
+            options=("gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-4-turbo"),
             placeholder="Select model...",
             index=0,
             key="model_name_key",
@@ -269,9 +280,10 @@ def initialize_session_state() -> None:
     session_defaults = {
         "url": "",
         "model_company_key": "OpenAI",
-        "model_name_key": "gpt-3.5-turbo",
+        "model_name_key": "gpt-4o-mini",
         "chatbot_api_key": "",
-        "task_key": "Parse a URL",
+        "source_key": "URL",
+        "task_key": "Summarize",
         "temperature_key": 0.7,
         "max_tokens_key": 1000,
         "status": [],
@@ -296,9 +308,10 @@ def clear_state() -> None:
     st.session_state.question_input = ""
     st.session_state.chat_history = []
     st.session_state.model_company_key = "OpenAI"
-    st.session_state.model_name_key = "gpt-3.5-turbo"
+    st.session_state.model_name_key = "gpt-4o-mini"
     st.session_state.chatbot_api_key = ""
-    st.session_state.task_key = "Parse a URL"
+    st.session_state.source_key = "URL"
+    st.session_state.task_key = "Summarize"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000
     st.session_state.scraping_done = False

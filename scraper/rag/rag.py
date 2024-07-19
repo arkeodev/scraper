@@ -6,10 +6,10 @@ import logging
 from typing import List, Optional
 
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.nodes import RAGNode
 
 from scraper.errors import QueryError
 from scraper.nodes.generate_answer_node import GenerateAnswerNode
+from scraper.nodes.rag_node import RAGNode
 
 
 class SgRag:
