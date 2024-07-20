@@ -15,11 +15,11 @@ class GraphFactory:
         embed_model=None,
         content_source: str = None,
     ) -> GraphInterface:
-        if task_id == 1:
+        if task_id == 0:
             return QAGraph(documents, llm, embed_model, content_source)
+        elif task_id == 1:
+            return SummarizerGraph(documents, llm, content_source)
         elif task_id == 2:
             return KeyPointsGraph(documents, llm, content_source)
-        elif task_id == 3:
-            return SummarizerGraph(documents, llm, content_source)
         else:
             raise ValueError("Unknown task ID")

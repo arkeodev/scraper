@@ -8,10 +8,11 @@ from typing import List, Optional
 from scrapegraphai.graphs import BaseGraph
 
 from scraper.errors import SummarizerError
+from scraper.graphs.base_graph import GraphInterface
 from scraper.nodes.key_points_node import KeyPoints
 
 
-class KeyPointsGraph:
+class KeyPointsGraph(GraphInterface):
     """
     Handles refinement sumary.
     """

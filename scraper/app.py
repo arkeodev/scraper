@@ -8,6 +8,8 @@ from typing import List
 
 from scraper.errors import PageScrapingError
 from scraper.graphs import QAGraph
+from scraper.graphs.base_graph import GraphInterface
+from scraper.graphs.graph_factory import GraphFactory
 from scraper.models import configure_llm, create_models
 from scraper.utils import (
     check_robots,
@@ -21,7 +23,7 @@ from scraper.utils import (
 def validate_input(session_state) -> bool:
     """Validate user inputs and set error message if invalid."""
     source = session_state.get("source")
-    selected_task = session_state.get("selected_task")
+    selected_source = session_state.get("selected_source")
     openai_api_key = session_state.get("chatbot_api_key")
 
     if not source:
@@ -31,7 +33,7 @@ def validate_input(session_state) -> bool:
         )
         return False
 
-    if selected_task.is_url:
+    if selected_source.is_url:
         if not is_valid_url(source):
             set_error("Invalid URL format.", session_state)
             return False
@@ -51,7 +53,7 @@ def validate_input(session_state) -> bool:
 
 
 def execute_scraping(session_state: dict) -> None:
-    """Executes all process after performing necessary validations."""
+    """Executes all processes after performing necessary validations."""
     if not validate_input(session_state):
         return
 
@@ -62,13 +64,14 @@ def execute_scraping(session_state: dict) -> None:
         model_config = create_models(
             session_state["model_company"], llm_config.model_dump()
         )
-        rag_object = rag(
-            documents,
-            model_config.llm,
-            model_config.embedder,
-            session_state["selected_task"].content_source,
+        graph = GraphFactory.create_graph(
+            task_id=session_state.selected_task_index,
+            documents=documents,
+            llm=model_config.llm,
+            embed_model=model_config.embedder,
+            content_source=session_state.selected_source.content_source,
         )
-        process_and_update_state(rag_object, session_state)
+        process_and_update_state(graph, session_state)
     except Exception as e:
         handle_error(e, session_state)
 
@@ -82,16 +85,16 @@ def scrape(session_state: dict) -> List[str]:
     """Scrapes the given URL or PDF and processes the documents for question answering."""
     logging.info(f"Scraping: {session_state.get('source')}")
 
-    selected_task = session_state.get("selected_task")
+    selected_source = session_state.get("selected_source")
     source = session_state.get("source")
 
-    if not selected_task.is_url:
+    if not selected_source.is_url:
         uploaded_file = source
         source = str(save_uploaded_file(uploaded_file))
         logging.info(f"File saved at: {source}")
 
     # Use factory to get the appropriate scraper
-    scraper = get_scraper(selected_task.id, source)
+    scraper = get_scraper(selected_source.id, source)
 
     documents = scraper.scrape()
     if not documents:
@@ -101,19 +104,11 @@ def scrape(session_state: dict) -> List[str]:
     return documents
 
 
-def rag(documents: List[str], llm, embedder, content_source) -> QAGraph:
-    """Gets the documents and processes them to prepare for question answering."""
-    logging.info(f"Rag process...")
-    rag_instance = QAGraph(documents, llm, embedder, content_source)
-
-    return rag_instance
-
-
-def process_and_update_state(rag_instance: QAGraph, session_state: dict) -> None:
+def process_and_update_state(graph: GraphInterface, session_state: dict) -> None:
     """Update the session state with results from the scraping."""
     session_state.update(
         {
-            "qa": rag_instance,
+            "graph": graph,
             "scraping_done": True,
             "error_mes": "",
         }

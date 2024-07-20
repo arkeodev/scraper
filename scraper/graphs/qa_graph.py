@@ -8,11 +8,12 @@ from typing import List, Optional
 from scrapegraphai.graphs import BaseGraph
 
 from scraper.errors import QueryError
+from scraper.graphs.base_graph import GraphInterface
 from scraper.nodes.generate_answer_node import GenerateAnswerNode
 from scraper.nodes.qa_node import QuestionAnswer
 
 
-class QAGraph:
+class QAGraph(GraphInterface):
     """
     Handles the Retrieval-Augmented Generation (RAG) functionality for question answering.
     """
