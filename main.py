@@ -234,9 +234,16 @@ def load_model_specific_ui(company_name: str):
 def display_qa_ui() -> None:
     """Displays the QA interface for user interaction."""
     if st.session_state.scraping_done:
-        user_input = st.chat_input("Please ask your questions", key="question_input")
-        if user_input:
-            handle_submit(user_input)
+        if st.session_state.selected_task_index == 0:
+            user_input = st.chat_input(
+                "Please ask your questions", key="question_input"
+            )
+            if user_input:
+                handle_submit(user_input)
+        elif st.session_state.selected_task_index == 1:
+            handle_summary_submit()
+        elif st.session_state.selected_task_index == 2:
+            handle_keypoints_submit()
 
 
 def handle_submit(user_input: str):
@@ -257,6 +264,42 @@ def handle_submit(user_input: str):
                 unsafe_allow_html=True,
             )
         st.markdown(" ")
+
+
+def handle_summary_submit():
+    """Handle the submission for document summarization."""
+    with st.spinner("Fetching summary..."):
+        graph = st.session_state.graph
+        summary = graph.execute()
+        if not summary:
+            summary = "I'm sorry, I couldn't generate a summary for this document."
+        st.session_state.summary_result = summary
+
+        st.text_area(
+            "Summary Result",
+            value=st.session_state.summary_result,
+            height=200,
+            key="summary_result",
+            disabled=True,
+        )
+
+
+def handle_keypoints_submit():
+    """Handle the submission for extracting key points."""
+    with st.spinner("Fetching key points..."):
+        graph = st.session_state.graph
+        key_points = graph.execute()
+        if not key_points:
+            key_points = "I'm sorry, I couldn't extract key points from this document."
+        st.session_state.key_points_result = key_points
+
+        st.text_area(
+            "Key Points Result",
+            value=st.session_state.key_points_result,
+            height=200,
+            key="key_points_result",
+            disabled=True,
+        )
 
 
 def trigger_refresh() -> None:
@@ -281,7 +324,10 @@ def initialize_session_state() -> None:
         "chat_history": [],
         "scraping_done": False,
         "question_input": "",
+        "summary_result": "",
+        "key_points_result": "",
         "refresh_triggered": False,
+        "selected_task_index": 0,
         "error_mes": "",
     }
     for key, value in session_defaults.items():
@@ -304,6 +350,9 @@ def clear_state() -> None:
     st.session_state.task_key = "Summarize"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000
+    st.session_state.selected_task_index = 0
+    st.session_state.key_points_result = ""
+    st.session_state.summary_result = ""
     st.session_state.scraping_done = False
     st.session_state.qa = (None,)
     st.cache_data.clear()
