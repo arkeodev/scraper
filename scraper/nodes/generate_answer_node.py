@@ -1,3 +1,7 @@
+"""
+Answer generation node module
+"""
+
 import logging
 from typing import List, Optional
 
@@ -21,7 +25,7 @@ class GenerateAnswerNode(BaseNode):
         input: str,
         output: List[str],
         node_config: Optional[dict] = None,
-        node_name: str = "GenerateAnswer",
+        node_name: str = "generateanswer",
     ):
         super().__init__(node_name, "node", input, output, 2, node_config)
         self.llm_model = node_config.get("llm_model")

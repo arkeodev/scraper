@@ -7,8 +7,8 @@ from pathlib import Path
 from typing import List
 
 from scraper.errors import PageScrapingError
+from scraper.graphs import QAGraph
 from scraper.models import configure_llm, create_models
-from scraper.rag import SgRag
 from scraper.utils import (
     check_robots,
     get_scraper,
@@ -101,15 +101,15 @@ def scrape(session_state: dict) -> List[str]:
     return documents
 
 
-def rag(documents: List[str], llm, embedder, content_source) -> SgRag:
+def rag(documents: List[str], llm, embedder, content_source) -> QAGraph:
     """Gets the documents and processes them to prepare for question answering."""
     logging.info(f"Rag process...")
-    rag_instance = SgRag(documents, llm, embedder, content_source)
+    rag_instance = QAGraph(documents, llm, embedder, content_source)
 
     return rag_instance
 
 
-def process_and_update_state(rag_instance: SgRag, session_state: dict) -> None:
+def process_and_update_state(rag_instance: QAGraph, session_state: dict) -> None:
     """Update the session state with results from the scraping."""
     session_state.update(
         {

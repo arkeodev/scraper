@@ -54,7 +54,7 @@ def display_title() -> None:
     """Display title and image."""
     # Use a container to wrap the image for specific styling
     st.markdown("<h1>m o l e</h1>", unsafe_allow_html=True)
-    st.image("scraper/images/mole.png")
+    st.image("images/mole.png")
     st.markdown("<h2>AI powered web scraping</h2>", unsafe_allow_html=True)
 
 

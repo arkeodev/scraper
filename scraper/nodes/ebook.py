@@ -1,5 +1,5 @@
 """"
-E-book reader node
+E-book reader node module
 """
 
 import logging
