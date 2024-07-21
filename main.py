@@ -276,8 +276,9 @@ def handle_summary_submit():
             summary = "I'm sorry, I couldn't generate a summary for this document."
         st.session_state.summary_result = summary
 
+        st.markdown("<h2>Summary Result</h2>", unsafe_allow_html=True)
         st.text_area(
-            "<h1>S u m m a r y  R e s u l t</h1>",
+            "",
             value=st.session_state.summary_result,
             height=500,
             key="summary_result",
@@ -294,8 +295,9 @@ def handle_keypoints_submit():
             key_points = "I'm sorry, I couldn't extract key points from this document."
         st.session_state.key_points_result = key_points
 
+        st.markdown("<h2>Key Points Result</h2>", unsafe_allow_html=True)
         st.text_area(
-            "<h1>K e y  P o i n t s  R e s u l t</h1>",
+            "",
             value=st.session_state.key_points_result,
             height=500,
             key="key_points_result",
