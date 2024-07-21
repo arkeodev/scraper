@@ -80,13 +80,14 @@ def display_scraping_ui() -> None:
     else:
         display_file_uploader(selected_source.allowed_extensions)
 
-    """Display task selection and update session state with the selected task."""
+    # Display task selection and update session state with the selected task.
     selected_task = st.selectbox(
         "Select Task",
         options=selected_source.task_def,
         placeholder="Select task...",
         index=0,
         key="task_key",
+        disabled=st.session_state.scraping_done,
     )
     st.session_state.selected_task_index = selected_source.task_def.index(selected_task)
 
@@ -276,9 +277,9 @@ def handle_summary_submit():
         st.session_state.summary_result = summary
 
         st.text_area(
-            "Summary Result",
+            "<h1>S u m m a r y  R e s u l t</h1>",
             value=st.session_state.summary_result,
-            height=200,
+            height=500,
             key="summary_result",
             disabled=True,
         )
@@ -294,9 +295,9 @@ def handle_keypoints_submit():
         st.session_state.key_points_result = key_points
 
         st.text_area(
-            "Key Points Result",
+            "<h1>K e y  P o i n t s  R e s u l t</h1>",
             value=st.session_state.key_points_result,
-            height=200,
+            height=500,
             key="key_points_result",
             disabled=True,
         )
@@ -316,7 +317,7 @@ def initialize_session_state() -> None:
         "model_name_key": "gpt-4o-mini",
         "chatbot_api_key": "",
         "source_key": "URL",
-        "task_key": "Summarize",
+        "task_key": "Chat",
         "temperature_key": 0.7,
         "max_tokens_key": 1000,
         "status": [],
@@ -347,7 +348,7 @@ def clear_state() -> None:
     st.session_state.model_name_key = "gpt-4o-mini"
     st.session_state.chatbot_api_key = ""
     st.session_state.source_key = "URL"
-    st.session_state.task_key = "Summarize"
+    st.session_state.task_key = "Chat"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000
     st.session_state.selected_task_index = 0

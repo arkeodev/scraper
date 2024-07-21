@@ -10,10 +10,14 @@ from langchain.chains.combine_documents.reduce import ReduceDocumentsChain
 from langchain.chains.combine_documents.stuff import StuffDocumentsChain
 from langchain.chains.llm import LLMChain
 from langchain.chains.mapreduce import MapReduceDocumentsChain
-from langchain.docstore.document import Document
+from langchain.prompts import PromptTemplate
 from langchain_core.documents import Document
+from langchain_core.output_parsers import JsonOutputParser
 from langchain_text_splitters import CharacterTextSplitter
 from scrapegraphai.nodes import BaseNode
+
+from scraper.config import AnswerSchema
+from scraper.utils import get_map_prompt_template, get_reduce_prompt_template
 
 
 class KeyPoints(BaseNode):
@@ -41,12 +45,13 @@ class KeyPoints(BaseNode):
         node_config: Optional[dict] = None,
         node_name: str = "keypoints",
     ):
-        super().__init__(node_name, "node", input, output, 2, node_config)
+        super().__init__(node_name, "node", input, output, 1, node_config)
 
         self.llm_model = node_config["llm_model"]
         self.verbose = (
             False if node_config is None else node_config.get("verbose", False)
         )
+        self.output_schema = node_config.get("schema", AnswerSchema)
 
     def execute(self, state: dict) -> dict:
         """
@@ -85,30 +90,18 @@ class KeyPoints(BaseNode):
             chunked_docs.append(doc)
         logging.info("Updated chunks metadata")
 
-        # Define the map template for identifying main themes from documents
-        map_template = """
-            The following is a set of documents {docs}
-            Based on this list of docs, please identify the main themes
-            Helpful Answer:
-            """
+        output_parser = JsonOutputParser(pydantic_object=self.output_schema)
+        format_instructions = output_parser.get_format_instructions()
+
         # Create a prompt template from the map template
-        # map_prompt = PromptTemplate.from_template(map_template)
-        # # Create a map chain using the LLM and map prompt
-        # map_chain = LLMChain(llm=self.llm, prompt=map_prompt)
+        map_prompt = PromptTemplate.from_template(get_map_prompt_template())
+        # Create a map chain using the LLM and map prompt
+        map_chain = LLMChain(llm=self.llm_model, prompt=map_prompt)
 
-        # Pull the map prompt template from the hub
-        map_prompt = hub.pull("rlm/map-prompt")
-        map_chain = LLMChain(llm=self.llm, prompt=map_prompt)
-
-        # Define the reduce template for consolidating summaries
-        reduce_template = """
-            The following is a set of summaries: {docs}
-            Take these and distill it into a final, consolidated summary of the main themes.
-            Helpful Answer:
-            """
-        # Pull the reduce prompt template from the hub
-        reduce_prompt = hub.pull("rlm/map-prompt")
-        reduce_chain = LLMChain(llm=self.llm, prompt=reduce_prompt)
+        # Create a prompt template from the reduce template
+        reduce_prompt = PromptTemplate.from_template(get_reduce_prompt_template())
+        # Create a reduce chain using the LLM and map prompt
+        reduce_chain = LLMChain(llm=self.llm_model, prompt=reduce_prompt)
 
         # Create a StuffDocumentsChain to combine documents into a single string
         combine_documents_chain = StuffDocumentsChain(
@@ -135,10 +128,11 @@ class KeyPoints(BaseNode):
             chunk_size=1000, chunk_overlap=0
         )
         # Split the document chunks
-        split_docs = text_splitter.split_documents(self.chunks)
+        split_docs = text_splitter.split_documents(chunked_docs)
         # Generate the summary by invoking the MapReduce chain with split documents
-        summary = map_reduce_chain.invoke(split_docs)
+        summary_result = map_reduce_chain.invoke(split_docs)
+        summary_text = summary_result.get("output_text", "")
         logging.info("Successfully generated MapReduce summary.")
 
-        state.update({self.output[0]: summary})
+        state.update({self.output[0]: summary_text})
         return state

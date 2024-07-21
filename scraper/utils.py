@@ -104,6 +104,38 @@ def get_merging_prompt_template(content_source: str) -> str:
     return merging_template
 
 
+def get_summarize_prompt_template() -> str:
+    refine_prompt_template = """
+    You are a summarization assistant. Your task is to refine the summary of a document.
+    The summary must have the same language as the document.
+    The summary must have at least 500 chracters long.
+
+    Output instructions: {format_instructions}
+    Document: {input_documents}
+    """
+    return refine_prompt_template
+
+
+def get_map_prompt_template() -> str:
+    # Define the map template for identifying main themes from documents
+    map_template = """
+        The following is a set of documents {docs}
+        Based on this list of docs, please identify the main themes
+        Helpful Answer:
+        """
+    return map_template
+
+
+def get_reduce_prompt_template() -> str:
+    # Define the reduce template for consolidating summaries
+    reduce_template = """
+        The following is a set of summaries: {docs}
+        Take these and distill it into a final, consolidated summary of the main themes.
+        Helpful Answer:
+        """
+    return reduce_template
+
+
 def extract_readable_text(html: str) -> str:
     """
     Extracts readable text from HTML content using readability-lxml and trafilatura.

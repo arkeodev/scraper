@@ -7,7 +7,12 @@ from typing import List, Optional
 
 from langchain.chains.summarize import load_summarize_chain
 from langchain.docstore.document import Document
+from langchain.prompts import PromptTemplate
+from langchain_core.output_parsers import JsonOutputParser
 from scrapegraphai.nodes import BaseNode
+
+from scraper.config import AnswerSchema
+from scraper.utils import get_summarize_prompt_template
 
 
 class Summarizer(BaseNode):
@@ -35,12 +40,13 @@ class Summarizer(BaseNode):
         node_config: Optional[dict] = None,
         node_name: str = "summarizer",
     ):
-        super().__init__(node_name, "node", input, output, 2, node_config)
+        super().__init__(node_name, "node", input, output, 1, node_config)
 
         self.llm_model = node_config["llm_model"]
         self.verbose = (
             False if node_config is None else node_config.get("verbose", False)
         )
+        self.output_schema = node_config.get("schema", AnswerSchema)
 
     def execute(self, state: dict) -> dict:
         """
@@ -77,14 +83,33 @@ class Summarizer(BaseNode):
                 },
             )
             chunked_docs.append(doc)
-        logging.info("Updated chunks metadata")
+        logging.info("Updated chunks metadata.")
+
+        output_parser = JsonOutputParser(pydantic_object=self.output_schema)
+        format_instructions = output_parser.get_format_instructions()
+
+        refine_prompt_template = get_summarize_prompt_template()
+        refine_prompt = PromptTemplate(
+            input_variables=["input_documents", "format_instructions"],
+            template=refine_prompt_template,
+        )
 
         summarize_chain = load_summarize_chain(
-            llm=self.llm_model, chain_type="refine", verbose=True
+            llm=self.llm_model,
+            chain_type="refine",
+            verbose=True,
+            refine_prompt=refine_prompt,
+            return_intermediate_steps=False,
         )
         # Generate the summary by invoking the chain with document chunks
-        summary = summarize_chain.invoke(chunked_docs)
+        summary_result = summarize_chain.invoke(
+            {
+                "input_documents": chunked_docs,
+                "format_instructions": format_instructions,
+            }
+        )
+        summary_text = summary_result.get("output_text", "")
         logging.info("Successfully generated refine summary.")
 
-        state.update({self.output[0]: summary})
+        state.update({self.output[0]: summary_text})
         return state
