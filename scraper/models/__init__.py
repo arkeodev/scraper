@@ -1,1 +1,1 @@
-from scraper.models.factory import configure_llm, create_models
+from scraper.models.model_factory import configure_llm, create_models

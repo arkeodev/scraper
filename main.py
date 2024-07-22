@@ -54,33 +54,42 @@ def display_title() -> None:
     """Display title and image."""
     # Use a container to wrap the image for specific styling
     st.markdown("<h1>m o l e</h1>", unsafe_allow_html=True)
-    st.image("scraper/images/mole.png")
+    st.image("images/mole.png")
     st.markdown("<h2>AI powered web scraping</h2>", unsafe_allow_html=True)
 
 
 def display_scraping_ui() -> None:
     """Display scraping interface."""
 
-    # Create a dictionary to map task definitions to task instances
-    task_options = {task.task_definition: task for task in tasks}
+    # Create a dictionary to map source definitions to task instances
+    source_options = {task.source_def: task for task in tasks}
+    source_selection = st.selectbox(
+        "Select Source",
+        options=list(source_options.keys()),
+        placeholder="Select source...",
+        index=0,
+        key="source_key",
+        disabled=st.session_state.scraping_done,
+    )
+    selected_source = source_options[source_selection]
+    st.session_state.selected_source = selected_source
 
-    task_selection = st.selectbox(
+    # Execute the corresponding function based on task selection
+    if selected_source.is_url:
+        display_url_input()
+    else:
+        display_file_uploader(selected_source.allowed_extensions)
+
+    # Display task selection and update session state with the selected task.
+    selected_task = st.selectbox(
         "Select Task",
-        options=list(task_options.keys()),
+        options=selected_source.task_def,
         placeholder="Select task...",
         index=0,
         key="task_key",
         disabled=st.session_state.scraping_done,
     )
-
-    selected_task = task_options[task_selection]
-    st.session_state.selected_task = selected_task
-
-    # Execute the corresponding function based on task selection
-    if selected_task.is_url:
-        display_url_input()
-    else:
-        display_file_uploader(selected_task.allowed_extensions)
+    st.session_state.selected_task_index = selected_source.task_def.index(selected_task)
 
     # Display error messages if any
     if st.session_state.error_mes:
@@ -122,17 +131,9 @@ def display_url_input():
 
 def display_config_ui() -> None:
     """Display configuration options for the scraper."""
-    # st.session_state.language = st.selectbox(
-    #     "Select the Language of the Web Site:",
-    #     options=("english", "turkish"),
-    #     placeholder="Select language...",
-    #     index=0,
-    #     key="language_key",
-    #     disabled=st.session_state.scraping_done,
-    # )
     st.session_state.model_company = st.selectbox(
         "Select the Model Company:",
-        options=("OpenAI", "Groq", "Anthropic", "Hugging Face"),
+        options=("OpenAI", "Hugging Face"),
         placeholder="Select model company...",
         index=0,
         key="model_company_key",
@@ -147,7 +148,7 @@ def load_model_specific_ui(company_name: str):
     if company_name == "OpenAI":
         st.session_state.model_name = st.selectbox(
             "Select the Model:",
-            options=("gpt-3.5-turbo", "gpt-4o", "gpt-4", "gpt-4-turbo"),
+            options=("gpt-4o-mini", "gpt-4o", "gpt-4", "gpt-4-turbo"),
             placeholder="Select model...",
             index=0,
             key="model_name_key",
@@ -155,42 +156,6 @@ def load_model_specific_ui(company_name: str):
         )
         st.session_state.api_key = st.text_input(
             "OpenAI API Key",
-            type="password",
-            key="chatbot_api_key",
-            disabled=st.session_state.scraping_done,
-        )
-    elif company_name == "Anthropic":
-        st.session_state.model_name = st.selectbox(
-            "Select the Model:",
-            options=("claude-3-haiku-20240307", "claude-3-5-sonnet-20240620"),
-            placeholder="Select model...",
-            index=0,
-            key="model_name_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.session_state.api_key = st.text_input(
-            "Antrophic API Key",
-            type="password",
-            key="chatbot_api_key",
-            disabled=st.session_state.scraping_done,
-        )
-    elif company_name == "Groq":
-        st.session_state.model_name = st.selectbox(
-            "Select the Model:",
-            options=(
-                "llama3-8b-8192",
-                "llama3-70b-8192",
-                "mixtral-8x7b-32768",
-                "gemma-7b-it",
-                "gemma2-9b-it",
-            ),
-            placeholder="Select model...",
-            index=0,
-            key="model_name_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.session_state.api_key = st.text_input(
-            "Groq API Key",
             type="password",
             key="chatbot_api_key",
             disabled=st.session_state.scraping_done,
@@ -223,7 +188,7 @@ def load_model_specific_ui(company_name: str):
         disabled=st.session_state.scraping_done,
     )
     st.session_state.max_tokens = st.number_input(
-        "Max Tokens",
+        "Max Output Tokens",
         min_value=1,
         value=1000,
         key="max_tokens_key",
@@ -234,15 +199,23 @@ def load_model_specific_ui(company_name: str):
 def display_qa_ui() -> None:
     """Displays the QA interface for user interaction."""
     if st.session_state.scraping_done:
-        user_input = st.chat_input("Please ask your questions", key="question_input")
-        if user_input:
-            handle_submit(user_input)
+        if st.session_state.selected_task_index == 0:
+            user_input = st.chat_input(
+                "Please ask your questions", key="question_input"
+            )
+            if user_input:
+                handle_submit(user_input)
+        elif st.session_state.selected_task_index == 1:
+            handle_summary_submit()
+        elif st.session_state.selected_task_index == 2:
+            handle_keypoints_submit()
 
 
 def handle_submit(user_input: str):
     """Handle the submission of the chat input."""
     with st.spinner("Fetching answer..."):
-        answer = st.session_state.qa.execute(user_input)
+        graph = st.session_state.graph
+        answer = graph.execute(user_input)
         if not answer:
             answer = "I'm sorry, I don't answer this question."
         st.session_state.chat_history.append(("assistant", answer))
@@ -258,6 +231,44 @@ def handle_submit(user_input: str):
         st.markdown(" ")
 
 
+def handle_summary_submit():
+    """Handle the submission for document summarization."""
+    with st.spinner("Fetching summary..."):
+        graph = st.session_state.graph
+        summary = graph.execute()
+        if not summary:
+            summary = "I'm sorry, I couldn't generate a summary for this document."
+        st.session_state.summary_result = summary
+
+        st.markdown("<h2>Summary Result</h2>", unsafe_allow_html=True)
+        st.text_area(
+            "",
+            value=st.session_state.summary_result,
+            height=500,
+            key="summary_result",
+            disabled=True,
+        )
+
+
+def handle_keypoints_submit():
+    """Handle the submission for extracting key points."""
+    with st.spinner("Fetching key points..."):
+        graph = st.session_state.graph
+        key_points = graph.execute()
+        if not key_points:
+            key_points = "I'm sorry, I couldn't extract key points from this document."
+        st.session_state.key_points_result = key_points
+
+        st.markdown("<h2>Key Points Result</h2>", unsafe_allow_html=True)
+        st.text_area(
+            "",
+            value=st.session_state.key_points_result,
+            height=500,
+            key="key_points_result",
+            disabled=True,
+        )
+
+
 def trigger_refresh() -> None:
     """Triggers a refresh by setting the flag."""
     st.session_state.refresh_triggered = True
@@ -269,17 +280,21 @@ def initialize_session_state() -> None:
     session_defaults = {
         "url": "",
         "model_company_key": "OpenAI",
-        "model_name_key": "gpt-3.5-turbo",
+        "model_name_key": "gpt-4o-mini",
         "chatbot_api_key": "",
-        "task_key": "Parse a URL",
+        "source_key": "URL",
+        "task_key": "Chat",
         "temperature_key": 0.7,
         "max_tokens_key": 1000,
         "status": [],
-        "qa": None,
+        "graph": None,
         "chat_history": [],
         "scraping_done": False,
         "question_input": "",
+        "summary_result": "",
+        "key_points_result": "",
         "refresh_triggered": False,
+        "selected_task_index": 0,
         "error_mes": "",
     }
     for key, value in session_defaults.items():
@@ -296,12 +311,17 @@ def clear_state() -> None:
     st.session_state.question_input = ""
     st.session_state.chat_history = []
     st.session_state.model_company_key = "OpenAI"
-    st.session_state.model_name_key = "gpt-3.5-turbo"
+    st.session_state.model_name_key = "gpt-4o-mini"
     st.session_state.chatbot_api_key = ""
-    st.session_state.task_key = "Parse a URL"
+    st.session_state.source_key = "URL"
+    st.session_state.task_key = "Chat"
     st.session_state.temperature_key = 0.7
     st.session_state.max_tokens_key = 1000
+    st.session_state.selected_task_index = 0
+    st.session_state.key_points_result = ""
+    st.session_state.summary_result = ""
     st.session_state.scraping_done = False
+    st.session_state.qa = (None,)
     st.cache_data.clear()
     st.session_state.refresh_triggered = False
     st.session_state.error_mes = ""

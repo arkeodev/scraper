@@ -31,3 +31,9 @@ class QueryError(BaseError):
     """Raised when there is an error with LLM query."""
 
     pass
+
+
+class SummarizerError(BaseError):
+    """Raised when there is an error with summarizer."""
+
+    pass

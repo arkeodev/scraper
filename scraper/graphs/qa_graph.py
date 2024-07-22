@@ -1,18 +1,19 @@
 """
-Module for handling question-answering functionality using ScrapeGraphAI.
+Graph module handling question-answering functionality.
 """
 
 import logging
 from typing import List, Optional
 
 from scrapegraphai.graphs import BaseGraph
-from scrapegraphai.nodes import RAGNode
 
 from scraper.errors import QueryError
+from scraper.graphs.base_graph import GraphInterface
 from scraper.nodes.generate_answer_node import GenerateAnswerNode
+from scraper.nodes.qa_node import QuestionAnswer
 
 
-class SgRag:
+class QAGraph(GraphInterface):
     """
     Handles the Retrieval-Augmented Generation (RAG) functionality for question answering.
     """
@@ -36,7 +37,7 @@ class SgRag:
         """
         Sets up the graph with the necessary nodes and configurations.
         """
-        self.rag_node = RAGNode(
+        self.rag_node = QuestionAnswer(
             input="user_prompt & (parsed_doc | doc)",
             output=["relevant_chunks"],
             node_config={

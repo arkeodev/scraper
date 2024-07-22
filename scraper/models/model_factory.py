@@ -1,14 +1,12 @@
 from collections import namedtuple
-from typing import Dict, Type
+from typing import Dict, Optional, Type
 
 from langchain.embeddings.base import Embeddings
 from langchain_huggingface import HuggingFaceEndpoint
-from langchain_huggingface.embeddings.huggingface import HuggingFaceEmbeddings
 from langchain_openai import OpenAIEmbeddings
-from scrapegraphai.models import Anthropic, Groq, OpenAI
+from pydantic import BaseModel, Field
+from scrapegraphai.models import OpenAI
 from sentence_transformers import SentenceTransformer
-
-from scraper.config import LLMConfig, embedding_models_dict
 
 ModelConfig = namedtuple("ModelConfig", ["llm", "embedder"])
 
@@ -33,39 +31,7 @@ class OpenAIModelFactory(BaseModelFactory):
         )
 
     def create_embedder(self, config: dict):
-        return OpenAIEmbeddings(
-            model=config["embedding_model_name"], api_key=config["api_key"]
-        )
-
-
-class GroqModelFactory(BaseModelFactory):
-    def create_llm(self, config: dict):
-        return Groq(
-            llm_config={
-                "model": config.get("model_name"),
-                "api_key": config.get("api_key"),
-                "max_tokens": config.get("max_tokens"),
-                "temperature": config.get("temperature"),
-            }
-        )
-
-    def create_embedder(self, config: dict):
-        return SentenceTransformerEmbeddings()
-
-
-class AnthropicModelFactory(BaseModelFactory):
-    def create_llm(self, config: dict):
-        return Anthropic(
-            llm_config={
-                "model": config.get("model_name"),
-                "anthropic_api_key": config.get("api_key"),
-                "max_tokens": config.get("max_tokens"),
-                "temperature": config.get("temperature"),
-            }
-        )
-
-    def create_embedder(self, config: dict):
-        return SentenceTransformerEmbeddings()
+        return OpenAIEmbeddings(api_key=config["api_key"])
 
 
 class HuggingFaceModelFactory(BaseModelFactory):
@@ -78,17 +44,20 @@ class HuggingFaceModelFactory(BaseModelFactory):
         )
 
     def create_embedder(self, config: dict):
-        return HuggingFaceEmbeddings(
-            model_name=config["embedding_model_name"],
-        )
+        return SentenceTransformerEmbeddings()
 
 
 factory_map: Dict[str, Type[BaseModelFactory]] = {
     "OpenAI": OpenAIModelFactory,
-    "Groq": GroqModelFactory,
-    "Anthropic": AnthropicModelFactory,
     "Hugging Face": HuggingFaceModelFactory,
 }
+
+
+class LLMConfig(BaseModel):
+    model_name: str
+    api_key: str = None
+    temperature: Optional[float] = Field(0.7, ge=0.0, le=1.0)
+    max_tokens: Optional[int] = Field(1_000, gt=0)
 
 
 def create_models(company_name: str, config: dict) -> ModelConfig:
@@ -104,9 +73,6 @@ def configure_llm(session_state: dict) -> LLMConfig:
     return LLMConfig(
         model_name=session_state.get("model_name_key"),
         api_key=session_state.get("chatbot_api_key"),
-        embedding_model_name=embedding_models_dict.get(
-            session_state.get("model_company", None), ""
-        ),
         temperature=session_state.get("temperature_key"),
         max_tokens=session_state.get("max_tokens_key"),
     )
