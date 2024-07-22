@@ -8,10 +8,8 @@ from typing import List, Optional
 from langchain.chains.summarize import load_summarize_chain
 from langchain.docstore.document import Document
 from langchain.prompts import PromptTemplate
-from langchain_core.output_parsers import JsonOutputParser
 from scrapegraphai.nodes import BaseNode
 
-from scraper.config import AnswerSchema
 from scraper.utils import get_summarize_prompt_template
 
 
@@ -46,7 +44,6 @@ class Summarizer(BaseNode):
         self.verbose = (
             False if node_config is None else node_config.get("verbose", False)
         )
-        self.output_schema = node_config.get("schema", AnswerSchema)
 
     def execute(self, state: dict) -> dict:
         """
@@ -85,12 +82,9 @@ class Summarizer(BaseNode):
             chunked_docs.append(doc)
         logging.info("Updated chunks metadata.")
 
-        output_parser = JsonOutputParser(pydantic_object=self.output_schema)
-        format_instructions = output_parser.get_format_instructions()
-
         refine_prompt_template = get_summarize_prompt_template()
         refine_prompt = PromptTemplate(
-            input_variables=["input_documents", "format_instructions"],
+            input_variables=["input_documents"],
             template=refine_prompt_template,
         )
 
@@ -105,7 +99,6 @@ class Summarizer(BaseNode):
         summary_result = summarize_chain.invoke(
             {
                 "input_documents": chunked_docs,
-                "format_instructions": format_instructions,
             }
         )
         summary_text = summary_result.get("output_text", "")

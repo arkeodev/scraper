@@ -12,11 +12,9 @@ from langchain.chains.llm import LLMChain
 from langchain.chains.mapreduce import MapReduceDocumentsChain
 from langchain.prompts import PromptTemplate
 from langchain_core.documents import Document
-from langchain_core.output_parsers import JsonOutputParser
 from langchain_text_splitters import CharacterTextSplitter
 from scrapegraphai.nodes import BaseNode
 
-from scraper.config import AnswerSchema
 from scraper.utils import get_map_prompt_template, get_reduce_prompt_template
 
 
@@ -51,7 +49,6 @@ class KeyPoints(BaseNode):
         self.verbose = (
             False if node_config is None else node_config.get("verbose", False)
         )
-        self.output_schema = node_config.get("schema", AnswerSchema)
 
     def execute(self, state: dict) -> dict:
         """
@@ -89,9 +86,6 @@ class KeyPoints(BaseNode):
             )
             chunked_docs.append(doc)
         logging.info("Updated chunks metadata")
-
-        output_parser = JsonOutputParser(pydantic_object=self.output_schema)
-        format_instructions = output_parser.get_format_instructions()
 
         # Create a prompt template from the map template
         map_prompt = PromptTemplate.from_template(get_map_prompt_template())

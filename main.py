@@ -133,7 +133,7 @@ def display_config_ui() -> None:
     """Display configuration options for the scraper."""
     st.session_state.model_company = st.selectbox(
         "Select the Model Company:",
-        options=("OpenAI", "Groq", "Anthropic", "Hugging Face"),
+        options=("OpenAI", "Hugging Face"),
         placeholder="Select model company...",
         index=0,
         key="model_company_key",
@@ -156,42 +156,6 @@ def load_model_specific_ui(company_name: str):
         )
         st.session_state.api_key = st.text_input(
             "OpenAI API Key",
-            type="password",
-            key="chatbot_api_key",
-            disabled=st.session_state.scraping_done,
-        )
-    elif company_name == "Anthropic":
-        st.session_state.model_name = st.selectbox(
-            "Select the Model:",
-            options=("claude-3-haiku-20240307", "claude-3-5-sonnet-20240620"),
-            placeholder="Select model...",
-            index=0,
-            key="model_name_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.session_state.api_key = st.text_input(
-            "Antrophic API Key",
-            type="password",
-            key="chatbot_api_key",
-            disabled=st.session_state.scraping_done,
-        )
-    elif company_name == "Groq":
-        st.session_state.model_name = st.selectbox(
-            "Select the Model:",
-            options=(
-                "llama3-8b-8192",
-                "llama3-70b-8192",
-                "mixtral-8x7b-32768",
-                "gemma-7b-it",
-                "gemma2-9b-it",
-            ),
-            placeholder="Select model...",
-            index=0,
-            key="model_name_key",
-            disabled=st.session_state.scraping_done,
-        )
-        st.session_state.api_key = st.text_input(
-            "Groq API Key",
             type="password",
             key="chatbot_api_key",
             disabled=st.session_state.scraping_done,
@@ -224,7 +188,7 @@ def load_model_specific_ui(company_name: str):
         disabled=st.session_state.scraping_done,
     )
     st.session_state.max_tokens = st.number_input(
-        "Max Tokens",
+        "Max Output Tokens",
         min_value=1,
         value=1000,
         key="max_tokens_key",
